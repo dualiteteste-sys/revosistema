@@ -7,45 +7,37 @@ import FAQ from '../../components/landing/FAQ';
 import Footer from '../../components/landing/Footer';
 import SignUpModal from '../../components/landing/SignUpModal';
 import LoginModal from '../../components/landing/LoginModal';
-import CreateCompanyModal from '../../components/onboarding/CreateCompanyModal';
 import { AnimatePresence } from 'framer-motion';
-import { Database } from '../../types/database.types';
-
-type Empresa = Database['public']['Tables']['empresas']['Row'];
+import { OnboardingIntent } from '@/types/onboarding';
 
 const LandingPage: React.FC = () => {
   const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [isCreateCompanyModalOpen, setIsCreateCompanyModalOpen] = useState(false);
-  const [createCompanyCallback, setCreateCompanyCallback] = useState<{ onSuccess: (newCompany: Empresa) => void } | null>(null);
+  const [onboardingIntent, setOnboardingIntent] = useState<OnboardingIntent | null>(null);
 
   const openLoginModal = () => {
     setIsSignUpModalOpen(false);
     setIsLoginModalOpen(true);
   };
 
-  const openSignUpModal = () => {
+  const openSignUpModal = (intent: OnboardingIntent | null = null) => {
+    setOnboardingIntent(intent);
     setIsLoginModalOpen(false);
     setIsSignUpModalOpen(true);
-  };
-  
-  const openCreateCompanyModal = (options: { onSuccess: (newCompany: Empresa) => void; }) => {
-    setCreateCompanyCallback(options);
-    setIsCreateCompanyModalOpen(true);
   };
 
   const closeModals = () => {
     setIsLoginModalOpen(false);
     setIsSignUpModalOpen(false);
-    setIsCreateCompanyModalOpen(false);
+    setOnboardingIntent(null);
   };
 
   return (
     <div className="bg-white">
       <Header onLoginClick={openLoginModal} />
       <main>
-        <Hero onSignUpClick={openSignUpModal} />
-        <Pricing onSignUpClick={openSignUpModal} onOpenCreateCompanyModal={openCreateCompanyModal} onLoginClick={openLoginModal} />
+        <Hero onSignUpClick={() => openSignUpModal({ type: 'trial', planSlug: 'PRO', billingCycle: 'yearly' })} />
+        <Pricing onSignUpClick={openSignUpModal} />
         <Features />
         <FAQ />
       </main>
@@ -53,25 +45,16 @@ const LandingPage: React.FC = () => {
 
       <AnimatePresence>
         {isSignUpModalOpen && (
-          <SignUpModal onClose={closeModals} onLoginClick={openLoginModal} />
+          <SignUpModal 
+            onClose={closeModals} 
+            onLoginClick={openLoginModal} 
+            intent={onboardingIntent}
+          />
         )}
       </AnimatePresence>
       <AnimatePresence>
         {isLoginModalOpen && (
-          <LoginModal onClose={closeModals} onSignUpClick={openSignUpModal} />
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {isCreateCompanyModalOpen && (
-            <CreateCompanyModal
-                onClose={() => setIsCreateCompanyModalOpen(false)}
-                onCompanyCreated={(newCompany) => {
-                    setIsCreateCompanyModalOpen(false);
-                    if (createCompanyCallback?.onSuccess) {
-                        createCompanyCallback.onSuccess(newCompany);
-                    }
-                }}
-            />
+          <LoginModal onClose={closeModals} onSignUpClick={() => openSignUpModal()} />
         )}
       </AnimatePresence>
     </div>

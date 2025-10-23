@@ -3,7 +3,7 @@ import { useAuth } from './contexts/AuthProvider';
 import MainLayout from './components/layout/MainLayout';
 import AuthLayout from './pages/auth/AuthLayout';
 import PendingVerificationPage from './pages/auth/PendingVerificationPage';
-import CreateCompanyPage from './pages/onboarding/CreateCompanyPage';
+import OnboardingPage from './pages/onboarding/OnboardingPage';
 import LandingPage from './pages/landing/LandingPage';
 import BillingSuccessPage from './pages/billing/SuccessPage';
 import BillingCancelPage from './pages/billing/CancelPage';
@@ -12,10 +12,9 @@ import RevoFluxoPage from './pages/landing/RevoFluxoPage';
 import Dashboard from './pages/Dashboard';
 import SalesDashboard from './pages/SalesDashboard';
 import ProductsPage from './pages/products/ProductsPage';
-import OnboardingMount from './components/OnboardingMount';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const { session, loading } = useAuth();
+  const { session, loading, empresas } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -30,12 +29,14 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
   
-  return (
-    <>
-      <OnboardingMount />
-      {children}
-    </>
-  );
+  // Se o usuário está logado mas não tem empresas, força o onboarding
+  if (empresas.length === 0) {
+    if (location.pathname !== '/onboarding/create-company') {
+      return <Navigate to="/onboarding/create-company" replace />;
+    }
+  }
+  
+  return children;
 };
 
 const App = () => {
@@ -66,7 +67,15 @@ const App = () => {
         <Route path="billing/cancel" element={<BillingCancelPage />} />
       </Route>
       
-      <Route path="/create-company" element={<CreateCompanyPage />} />
+      {/* Rota dedicada para o onboarding, protegida para garantir que só usuários logados sem empresa cheguem aqui */}
+      <Route 
+        path="/onboarding/create-company" 
+        element={
+          <ProtectedRoute>
+            <OnboardingPage />
+          </ProtectedRoute>
+        } 
+      />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

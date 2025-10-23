@@ -47,6 +47,6 @@ export async function startCheckout(
     throw new Error('Resposta da função não contém a URL do Stripe Checkout.');
   }
 
-  // 6. Redirecionar para o Stripe
-  window.location.href = checkoutUrl;
+  // 6. Redirecionar para o Stripe em uma nova aba para contornar restrições de CSP
+  window.open(checkoutUrl, '_blank');
 }

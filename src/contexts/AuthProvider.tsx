@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Database } from '../types/database.types';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from './ToastProvider';
 
 type Empresa = Database['public']['Tables']['empresas']['Row'];
 
@@ -26,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [activeEmpresa, setActiveEmpresaState] = useState<Empresa | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
   const setActiveEmpresa = useCallback((empresa: Empresa | null) => {
     setActiveEmpresaState(empresa);
@@ -78,14 +80,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       fetchInitialData(session);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Toast para confirmação de email
+      if (event === 'SIGNED_IN' && session?.user.user_metadata?.onboardingIntent) {
+        const lastSignIn = new Date(session.user.last_sign_in_at || 0);
+        const now = new Date();
+        // Se o login for muito recente, é provável que seja o primeiro após a confirmação
+        if (now.getTime() - lastSignIn.getTime() < 5000) {
+            addToast('E-mail confirmado com sucesso!', 'success');
+        }
+      }
       fetchInitialData(session);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [fetchInitialData]);
+  }, [fetchInitialData, addToast]);
 
   const signOut = async () => {
     await supabase.auth.signOut();

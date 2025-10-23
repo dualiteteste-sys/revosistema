@@ -3,13 +3,15 @@ import { motion } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { OnboardingIntent } from '@/types/onboarding';
 
 interface SignUpModalProps {
   onClose: () => void;
   onLoginClick: () => void;
+  intent: OnboardingIntent | null;
 }
 
-const SignUpModal: React.FC<SignUpModalProps> = ({ onClose, onLoginClick }) => {
+const SignUpModal: React.FC<SignUpModalProps> = ({ onClose, onLoginClick, intent }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,6 +38,10 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ onClose, onLoginClick }) => {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/app`,
+        // Armazena a intenção do usuário nos metadados para recuperar após o login
+        data: {
+          onboardingIntent: intent
+        }
       },
     });
 

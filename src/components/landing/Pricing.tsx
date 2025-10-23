@@ -1,28 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { supabasePublic } from '@/lib/supabasePublic';
-import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/database.types';
 import PricingCard from '@/components/billing/PricingCard';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { motion } from 'framer-motion';
+import { OnboardingIntent } from '@/types/onboarding';
 
 type Plan = Database['public']['Tables']['plans']['Row'];
-type Empresa = Database['public']['Tables']['empresas']['Row'];
 
 interface PricingProps {
-    onSignUpClick: () => void;
-    onLoginClick: () => void;
-    onOpenCreateCompanyModal: (options: { onSuccess: (newCompany: Empresa) => void; }) => void;
+    onSignUpClick: (intent: OnboardingIntent) => void;
 }
 
-const Pricing: React.FC<PricingProps> = ({ onLoginClick, onOpenCreateCompanyModal }) => {
+const Pricing: React.FC<PricingProps> = ({ onSignUpClick }) => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
   const [checkoutLoading, setCheckoutLoading] = useState<{ planId: string | null, type: 'subscribe' | 'trial' | null }>({ planId: null, type: null });
-  const { session, activeEmpresa } = useAuth();
+  const { session } = useAuth();
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -45,62 +42,23 @@ const Pricing: React.FC<PricingProps> = ({ onLoginClick, onOpenCreateCompanyModa
     fetchPlans();
   }, [addToast]);
 
-  const handleCheckout = async (plan: Plan, trial = false) => {
-    if (!session) {
-      addToast("Você precisa estar logado para iniciar.", "info");
-      onLoginClick();
+  const handleAction = (plan: Plan, type: 'trial' | 'subscribe') => {
+    if (session) {
+      // Se o usuário já está logado, deve ser redirecionado para o app para
+      // gerenciar a assinatura, pois o fluxo da landing é para novos usuários.
+      addToast("Você já está logado. Gerencie sua assinatura no painel.", "info");
+      window.location.href = '/app';
       return;
     }
 
-    const performCheckout = async (empresa: Empresa) => {
-        setCheckoutLoading({ planId: plan.id, type: trial ? 'trial' : 'subscribe' });
-        try {
-            const { data: sessionRes } = await supabase.auth.getSession();
-            const token = sessionRes?.session?.access_token ?? null;
-
-            if (!token) {
-                throw new Error('Sessão de usuário inválida. Por favor, faça login novamente.');
-            }
-
-            const payload = {
-                empresa_id: empresa.id,
-                plan_slug: plan.slug,
-                billing_cycle: plan.billing_cycle,
-                trial,
-            };
-
-            const { data, error } = await supabase.functions.invoke('billing-checkout', {
-                body: payload,
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            if (error) throw error;
-            
-            if (data.url) {
-                window.location.href = data.url;
-            } else {
-                throw new Error("URL de checkout não recebida.");
-            }
-        } catch (err: any) {
-            console.error('[pricing] handleCheckout:error', err);
-            addToast(err?.message ?? 'Falha ao iniciar checkout.', 'error');
-        } finally {
-            setCheckoutLoading({ planId: null, type: null });
-        }
+    const intent: OnboardingIntent = {
+      planSlug: plan.slug,
+      billingCycle: plan.billing_cycle,
+      type: type
     };
-
-    if (!activeEmpresa) {
-        addToast("Vamos criar sua empresa primeiro.", "info");
-        onOpenCreateCompanyModal({
-            onSuccess: (newCompany) => {
-                performCheckout(newCompany);
-            }
-        });
-    } else {
-        performCheckout(activeEmpresa);
-    }
+    
+    addToast("Para continuar, por favor, crie sua conta.", "info");
+    onSignUpClick(intent);
   };
 
   const filteredPlans = plans.filter(p => p.billing_cycle === billingCycle);
@@ -160,8 +118,8 @@ const Pricing: React.FC<PricingProps> = ({ onLoginClick, onOpenCreateCompanyModa
                 <PricingCard
                   key={plan.id}
                   plan={plan}
-                  onSubscribe={() => handleCheckout(plan, false)}
-                  onTrial={() => handleCheckout(plan, true)}
+                  onSubscribe={() => handleAction(plan, 'subscribe')}
+                  onTrial={() => handleAction(plan, 'trial')}
                   isSubscribing={checkoutLoading.planId === plan.id && checkoutLoading.type === 'subscribe'}
                   isTrialling={checkoutLoading.planId === plan.id && checkoutLoading.type === 'trial'}
                   index={index}
