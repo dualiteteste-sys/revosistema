@@ -1,48 +1,28 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { supabase } from '../../lib/supabase';
-import { supabasePublic } from '../../lib/supabasePublic';
-import { useAuth } from '../../contexts/AuthProvider';
-import { useToast } from '../../contexts/ToastProvider';
+import React, { useState, useEffect } from 'react';
+import { supabasePublic } from '@/lib/supabasePublic';
+import { supabase } from '@/lib/supabase';
+import { Database } from '@/types/database.types';
+import PricingCard from '@/components/billing/PricingCard';
 import { Loader2 } from 'lucide-react';
-import { Database } from '../../types/database.types';
-import { startCheckout } from '../../lib/billing';
+import { useAuth } from '@/contexts/AuthProvider';
+import { useToast } from '@/contexts/ToastProvider';
+import { motion } from 'framer-motion';
 
 type Plan = Database['public']['Tables']['plans']['Row'];
 type Empresa = Database['public']['Tables']['empresas']['Row'];
 
 interface PricingProps {
-  onSignUpClick: () => void;
-  onLoginClick: () => void;
-  onOpenCreateCompanyModal: (options: { onSuccess: (newCompany: Empresa) => void; }) => void;
+    onSignUpClick: () => void;
+    onLoginClick: () => void;
+    onOpenCreateCompanyModal: (options: { onSuccess: (newCompany: Empresa) => void; }) => void;
 }
 
-const planSubtitles: { [key: string]: string } = {
-  START: 'Empreendedores e Micro Empresas',
-  PRO: 'PMEs em Crescimento',
-  MAX: 'Recursos Avançados',
-  ULTRA: 'Indústrias e alta demanda de armazenamento',
-};
-
-// --- START: Checkout Intent Logic ---
-type PendingCheckout = { planSlug: 'START' | 'PRO' | 'MAX' | 'ULTRA'; cycle: 'monthly' | 'yearly'; trial?: boolean };
-const PENDING_KEY = 'revo.pendingCheckout';
-
-function savePending(p: PendingCheckout) {
-  localStorage.setItem(PENDING_KEY, JSON.stringify(p));
-}
-function loadPending(): PendingCheckout | null {
-  try { return JSON.parse(localStorage.getItem(PENDING_KEY) || 'null'); } catch { return null; }
-}
-function clearPending() { localStorage.removeItem(PENDING_KEY); }
-// --- END: Checkout Intent Logic ---
-
-const Pricing: React.FC<PricingProps> = ({ onSignUpClick, onLoginClick, onOpenCreateCompanyModal }) => {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
+const Pricing: React.FC<PricingProps> = ({ onLoginClick, onOpenCreateCompanyModal }) => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-  const { activeEmpresa, setActiveEmpresa } = useAuth();
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
+  const [checkoutLoading, setCheckoutLoading] = useState<{ planId: string | null, type: 'subscribe' | 'trial' | null }>({ planId: null, type: null });
+  const { session, activeEmpresa } = useAuth();
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -64,103 +44,76 @@ const Pricing: React.FC<PricingProps> = ({ onSignUpClick, onLoginClick, onOpenCr
     };
     fetchPlans();
   }, [addToast]);
-  
-  const handleCheckout = useCallback(async (plan: Plan, trial = false) => {
-    console.log('[pricing] handleCheckout:start', { plan, trial });
-    try {
-      setCheckoutLoading(plan.id);
-  
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('[pricing] session?', !!session);
-  
-      const cycle: 'monthly' | 'yearly' = billingCycle;
-      const intent = { planSlug: plan.slug as any, cycle, trial } as const;
-  
-      if (!session) {
-        console.warn('[pricing] bloqueado: sem sessão → abrindo login');
-        addToast('Faça login para continuar.', 'info');
-        savePending(intent);
-        const { data: sub } = supabase.auth.onAuthStateChange((evt, s) => {
-          if (evt === 'SIGNED_IN' && s?.access_token) {
-            console.log('[pricing] SIGNED_IN → re-run checkout (intent)');
-            sub.subscription.unsubscribe();
-            const p = loadPending(); 
-            if (p) {
-              clearPending();
-              // Find the full plan object to pass to handleCheckout
-              const targetPlan = plans.find(pl => pl.slug === p.planSlug && pl.billing_cycle === p.cycle);
-              if (targetPlan) {
-                handleCheckout(targetPlan, p.trial);
-              }
-            }
-          }
-        });
-        onLoginClick?.();
-        return;
-      }
-  
-      if (!activeEmpresa) {
-        console.warn('[pricing] bloqueado: sem empresa ativa → abrindo criação');
-        addToast('Crie sua empresa para continuar.', 'info');
-        savePending(intent);
-        onOpenCreateCompanyModal?.({
-          onSuccess: (novaEmpresa) => {
-            console.log('[pricing] empresa criada', novaEmpresa?.id);
-            setActiveEmpresa(novaEmpresa);
-            const p = loadPending(); 
-            if (p) {
-              clearPending();
-              const targetPlan = plans.find(pl => pl.slug === p.planSlug && pl.billing_cycle === p.cycle);
-              if (targetPlan) {
-                setTimeout(() => handleCheckout(targetPlan, p.trial), 0);
-              }
-            }
-          },
-        });
-        return;
-      }
-  
-      console.log('[pricing] pronto p/ startCheckout', { empresaId: activeEmpresa.id, ...intent });
-      await startCheckout(activeEmpresa.id, intent.planSlug, intent.cycle, intent.trial);
-      console.log('[pricing] startCheckout:dispatched');
-    } catch (e: any) {
-      console.error('[pricing] handleCheckout:error', e);
-      addToast(e?.message ?? 'Erro ao criar sessão de checkout', 'error');
-    } finally {
-      setCheckoutLoading(null);
-      console.log('[pricing] handleCheckout:done');
+
+  const handleCheckout = async (plan: Plan, trial = false) => {
+    if (!session) {
+      addToast("Você precisa estar logado para iniciar.", "info");
+      onLoginClick();
+      return;
     }
-  }, [activeEmpresa, addToast, billingCycle, onOpenCreateCompanyModal, onLoginClick, setActiveEmpresa, plans]);
 
-  useEffect(() => {
-    (window as any).___forceCheckout = (planSlug = 'PRO', cycle: 'monthly' | 'yearly' = 'monthly') => {
-      setBillingCycle(cycle);
-      setTimeout(() => {
-        const targetPlan = plans.find(p => p.slug === planSlug && p.billing_cycle === cycle);
-        if (targetPlan) {
-            console.log('[pricing] __forceCheckout', { planSlug, cycle, hasEmpresa: !!activeEmpresa });
-            handleCheckout(targetPlan, true); // Assume trial for debug
-        } else {
-            console.warn(`[pricing] __forceCheckout: Plan '${planSlug}' for cycle '${cycle}' not found. Using a fake plan for debug.`);
-            const fakePlan = { id: 'TEST_ID', slug: planSlug, billing_cycle: cycle } as any;
-            handleCheckout(fakePlan, true);
+    const performCheckout = async (empresa: Empresa) => {
+        setCheckoutLoading({ planId: plan.id, type: trial ? 'trial' : 'subscribe' });
+        try {
+            const { data: sessionRes } = await supabase.auth.getSession();
+            const token = sessionRes?.session?.access_token ?? null;
+
+            if (!token) {
+                throw new Error('Sessão de usuário inválida. Por favor, faça login novamente.');
+            }
+
+            const payload = {
+                empresa_id: empresa.id,
+                plan_slug: plan.slug,
+                billing_cycle: plan.billing_cycle,
+                trial,
+            };
+
+            const { data, error } = await supabase.functions.invoke('billing-checkout', {
+                body: payload,
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (error) throw error;
+            
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                throw new Error("URL de checkout não recebida.");
+            }
+        } catch (err: any) {
+            console.error('[pricing] handleCheckout:error', err);
+            addToast(err?.message ?? 'Falha ao iniciar checkout.', 'error');
+        } finally {
+            setCheckoutLoading({ planId: null, type: null });
         }
-      }, 100);
     };
-  }, [activeEmpresa, plans, handleCheckout]);
 
+    if (!activeEmpresa) {
+        addToast("Vamos criar sua empresa primeiro.", "info");
+        onOpenCreateCompanyModal({
+            onSuccess: (newCompany) => {
+                performCheckout(newCompany);
+            }
+        });
+    } else {
+        performCheckout(activeEmpresa);
+    }
+  };
 
-  const currentPlans = plans.filter(p => p.billing_cycle === billingCycle);
+  const filteredPlans = plans.filter(p => p.billing_cycle === billingCycle);
 
   return (
-    <section id="pricing" className="py-20 bg-white">
+    <section id="pricing" className="py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center">
+        <div className="text-center mb-12">
           <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-            Planos flexíveis para cada etapa do seu negócio
+            Escolha o plano que mais se adapta à sua empresa
           </h2>
           <p className="mt-4 text-lg text-gray-600">
-            Comece de graça por 30 dias. Cancele a qualquer momento.
+            Comece grátis por 30 dias. Cancele quando quiser.
           </p>
         </div>
 
@@ -180,76 +133,41 @@ const Pricing: React.FC<PricingProps> = ({ onSignUpClick, onLoginClick, onOpenCr
             Anual
           </span>
           <span className="ml-3 bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-            Economize até 3 meses!
+            Economize!
           </span>
         </div>
 
-        <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12">
           {loading ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-2xl p-8 shadow-lg bg-gray-100 animate-pulse h-[28rem]"></div>
-            ))
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="animate-spin text-blue-600" size={48} />
+            </div>
           ) : (
-            currentPlans.map((plan, index) => (
-              <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className={`relative flex flex-col rounded-2xl p-6 sm:p-8 shadow-lg h-full border ${
-                  plan.slug === 'PRO' ? 'bg-gray-800 text-white border-blue-500' : 'bg-white border-gray-200'
-                }`}
-              >
-                {plan.slug === 'PRO' && (
-                  <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2">
-                    <div className="bg-blue-500 text-white text-xs font-bold px-4 py-1 rounded-full uppercase">
-                      Popular
-                    </div>
-                  </div>
-                )}
-                <h3 className="text-xl font-semibold">{plan.name}</h3>
-                <p className={`mt-1 text-sm h-10 ${plan.slug === 'PRO' ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {planSubtitles[plan.slug] || ''}
-                </p>
-                
-                <div className="mt-4 flex items-baseline">
-                  <span className={`font-bold text-4xl ${plan.slug === 'PRO' ? 'text-white' : 'text-gray-900'}`}>
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.amount_cents / 100)}
-                  </span>
-                  <span className={`ml-1 text-sm ${plan.slug === 'PRO' ? 'text-gray-400' : 'text-gray-500'}`}>
-                    /mês
-                  </span>
-                </div>
-                
-                <div className="flex-grow"></div>
-
-                <div className="mt-8 space-y-3">
-                  <button
-                    onClick={() => handleCheckout(plan, false)}
-                    disabled={checkoutLoading === plan.id}
-                    className={`w-full py-3 px-4 text-base font-semibold rounded-lg transition-transform duration-200 flex items-center justify-center border ${
-                      plan.slug === 'PRO'
-                        ? 'border-gray-500 text-gray-300 hover:bg-gray-700'
-                        : 'border-gray-300 text-gray-700 hover:bg-gray-100'
-                    } disabled:opacity-70 disabled:cursor-not-allowed`}
-                  >
-                    {checkoutLoading === plan.id ? <Loader2 className="animate-spin" /> : 'Assinar'}
-                  </button>
-                  <button
-                    onClick={() => handleCheckout(plan, true)}
-                    disabled={checkoutLoading === plan.id}
-                    className={`w-full py-3 px-4 text-base font-semibold rounded-lg transition-transform duration-200 flex items-center justify-center ${
-                      plan.slug === 'PRO'
-                        ? 'bg-blue-500 text-white hover:bg-blue-600'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    } disabled:opacity-70 disabled:cursor-not-allowed`}
-                  >
-                    {checkoutLoading === plan.id ? <Loader2 className="animate-spin" /> : 'Teste 30 dias grátis'}
-                  </button>
-                </div>
-              </motion.div>
-            ))
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true, amount: 0.2 }}
+              variants={{
+                animate: {
+                  transition: {
+                    staggerChildren: 0.1,
+                  },
+                },
+              }}
+            >
+              {filteredPlans.map((plan, index) => (
+                <PricingCard
+                  key={plan.id}
+                  plan={plan}
+                  onSubscribe={() => handleCheckout(plan, false)}
+                  onTrial={() => handleCheckout(plan, true)}
+                  isSubscribing={checkoutLoading.planId === plan.id && checkoutLoading.type === 'subscribe'}
+                  isTrialling={checkoutLoading.planId === plan.id && checkoutLoading.type === 'trial'}
+                  index={index}
+                />
+              ))}
+            </motion.div>
           )}
         </div>
       </div>

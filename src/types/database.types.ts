@@ -354,6 +354,14 @@ export interface Database {
         Args: { p_empresa: string }
         Returns: { user_id: string; role: string; created_at: string }[]
       }
+      provision_empresa_for_current_user: {
+        Args: {
+          p_razao_social: string
+          p_fantasia: string
+          p_email?: string | null
+        }
+        Returns: Database["public"]["Tables"]["empresas"]["Row"]
+      }
       whoami: {
         Args: Record<string, unknown>
         Returns: string

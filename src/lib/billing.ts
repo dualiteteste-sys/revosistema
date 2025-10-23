@@ -13,51 +13,40 @@ export async function startCheckout(
   cycle: "monthly" | "yearly",
   trial?: boolean
 ) {
-  const base = import.meta.env.VITE_FUNCTIONS_BASE_URL;
-  if (!base || !base.startsWith("https://") || !base.includes(".functions.supabase.co")) {
-    console.error("VITE_FUNCTIONS_BASE_URL inválida:", base);
-    throw new Error("Config de endpoint das Edge Functions está inválida");
-  }
-  
+  // 1. Obter a sessão para garantir que o token JWT seja anexado automaticamente
   const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  if (!token) {
+  if (!session) {
     throw new Error("Usuário não autenticado. Por favor, faça login para continuar.");
   }
 
+  // 2. Preparar o payload para a função
   const payload = { 
     empresa_id: empresaId, 
     plan_slug: planSlug, 
     billing_cycle: cycle, 
     ...(trial && { trial: true }) 
   };
-  const url = `${base}/billing-checkout`;
 
-  console.log('[billing] calling', url, payload);
+  console.log('[billing] invoking function "billing-checkout" with payload:', payload);
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { 
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify(payload),
-  }).catch(e => { 
-    throw new Error(`Falha de rede ou CORS ao chamar a função: ${(e as Error).message}`); 
+  // 3. Invocar a Edge Function usando o SDK do Supabase
+  const { data, error } = await supabase.functions.invoke('billing-checkout', {
+    body: payload,
   });
 
-  if (!res.ok) { 
-    let d = ''; 
-    try { 
-      d = JSON.stringify(await res.json()); 
-    } catch {} 
-    throw new Error(`Erro da função (${res.status}): ${d || res.statusText}`); 
+  // 4. Lidar com erros da invocação
+  if (error) {
+    console.error('[billing] supabase.functions.invoke error:', error);
+    throw new Error(error.message || 'Ocorreu um erro ao iniciar o checkout.');
   }
 
-  const { url: checkoutUrl } = await res.json(); 
+  // 5. Lidar com a resposta
+  const checkoutUrl = data?.url;
   if (!checkoutUrl) {
+    console.error('[billing] No checkout URL in response:', data);
     throw new Error('Resposta da função não contém a URL do Stripe Checkout.');
   }
 
+  // 6. Redirecionar para o Stripe
   window.location.href = checkoutUrl;
 }

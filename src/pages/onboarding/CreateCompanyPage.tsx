@@ -1,16 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthProvider';
 import { motion } from 'framer-motion';
 import { useToast } from '../../contexts/ToastProvider';
 import { Loader2 } from 'lucide-react';
+import { provisionEmpresa } from '../../features/onboarding/api';
 
 const CreateCompanyPage = () => {
   const [razaoSocial, setRazaoSocial] = useState('');
   const [fantasia, setFantasia] = useState('');
-  const [cnpj, setCnpj] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signOut, refreshEmpresas, user, setActiveEmpresa } = useAuth();
+  const { signOut, refreshEmpresas, setActiveEmpresa } = useAuth();
   const { addToast } = useToast();
   const razaoSocialInputRef = useRef<HTMLInputElement>(null);
 
@@ -18,34 +17,9 @@ const CreateCompanyPage = () => {
     razaoSocialInputRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    const checkSession = async () => {
-      if (user) {
-        try {
-          const { data, error } = await supabase.rpc('whoami');
-          console.log('--- Diagnóstico de Sessão (Onboarding) ---');
-          console.log('ID do usuário no AuthProvider:', user.id);
-          console.log('Resultado do RPC whoami:', data);
-          if (error) {
-            console.error('Erro no RPC whoami:', error);
-          }
-          console.log('------------------------------------------');
-        } catch (e) {
-          console.error("Falha ao executar diagnóstico 'whoami'", e)
-        }
-      }
-    };
-    checkSession();
-  }, [user]);
-
   const validateForm = () => {
     if (razaoSocial.trim().length < 3) {
       addToast('A Razão Social é obrigatória (mínimo 3 caracteres).', 'error');
-      return false;
-    }
-    const normalizedCnpj = cnpj.replace(/\D/g, '');
-    if (cnpj && normalizedCnpj.length !== 14) {
-      addToast('O CNPJ, se informado, deve conter 14 dígitos.', 'error');
       return false;
     }
     return true;
@@ -58,44 +32,18 @@ const CreateCompanyPage = () => {
     setLoading(true);
 
     try {
-      const { data, error: rpcError } = await supabase.rpc('create_empresa_and_link_owner', {
-        p_razao_social: razaoSocial,
-        p_fantasia: fantasia,
-        p_cnpj: cnpj,
+      const newCompany = await provisionEmpresa({
+        razao_social: razaoSocial,
+        fantasia: fantasia,
       });
 
-      if (rpcError) {
-        throw rpcError;
-      }
-      
-      const empresaCriada = Array.isArray(data) ? data[0] : null;
+      addToast('Empresa criada com sucesso! Acessando...', 'success');
+      await refreshEmpresas();
+      setActiveEmpresa(newCompany);
+      // O AuthProvider irá detectar a nova empresa e o App.tsx irá redirecionar.
 
-      if (empresaCriada && empresaCriada.empresa_id) {
-        addToast('Empresa criada com sucesso! Acessando...', 'success');
-        await refreshEmpresas();
-        
-        // A lógica do AuthProvider irá pegar a nova empresa e redirecionar o App.tsx
-        // Para garantir, podemos tentar setar aqui, mas o refresh já deve ser suficiente.
-        const { data: newEmpresaList } = await supabase
-            .from('empresas')
-            .select('*')
-            .eq('id', empresaCriada.empresa_id);
-        
-        if (newEmpresaList && newEmpresaList.length > 0) {
-            setActiveEmpresa(newEmpresaList[0]);
-        }
-
-      } else {
-        throw new Error('Ocorreu um erro inesperado. A resposta do servidor estava vazia.');
-      }
     } catch (error: any) {
-      if (error.message.includes('not_signed_in')) {
-        addToast('Sua sessão expirou. Por favor, faça login novamente.', 'error');
-      } else if (error.message.includes('invalid_cnpj_format')) {
-        addToast('O formato do CNPJ é inválido. Verifique os 14 dígitos.', 'error');
-      } else {
-        addToast(error.message || 'Erro ao criar empresa.', 'error');
-      }
+      addToast(error.message || 'Erro ao criar empresa.', 'error');
     } finally {
       setLoading(false);
     }
@@ -146,21 +94,10 @@ const CreateCompanyPage = () => {
                 placeholder="Nome Popular da Empresa"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700" htmlFor="cnpj">CNPJ (Opcional)</label>
-              <input
-                id="cnpj"
-                type="text"
-                value={cnpj}
-                onChange={(e) => setCnpj(e.target.value)}
-                className="w-full mt-1 p-3 bg-white/50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition"
-                placeholder="00.000.000/0001-00"
-              />
-            </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center mt-4"
             >
               {loading ? <Loader2 className="animate-spin" /> : 'Criar Empresa e Acessar'}
             </button>

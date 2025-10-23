@@ -3,6 +3,7 @@ import { Database } from '../types/database.types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const functionsUrl = import.meta.env.VITE_FUNCTIONS_BASE_URL;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('As variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY precisam ser definidas.');
@@ -13,5 +14,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+  },
+  global: {
+    functionsUrl: functionsUrl,
   },
 });

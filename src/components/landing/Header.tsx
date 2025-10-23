@@ -61,6 +61,7 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                     >
                       <Link to="/" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">REVO ERP</Link>
                       <Link to="/revo-send" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">REVO Send</Link>
+                      <Link to="/revo-fluxo" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">REVO Fluxo</Link>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -110,6 +111,7 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                 <div className="mt-1 space-y-1">
                   <Link to="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">REVO ERP</Link>
                   <Link to="/revo-send" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">REVO Send</Link>
+                  <Link to="/revo-fluxo" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">REVO Fluxo</Link>
                 </div>
               </div>
               {navLinks.map((link) => (

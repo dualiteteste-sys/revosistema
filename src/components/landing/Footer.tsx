@@ -12,6 +12,7 @@ const Footer: React.FC = () => {
             <ul className="mt-4 space-y-2">
               <li><Link to="/" className="text-base text-gray-300 hover:text-white">REVO ERP</Link></li>
               <li><Link to="/revo-send" className="text-base text-gray-300 hover:text-white">REVO Send</Link></li>
+              <li><Link to="/revo-fluxo" className="text-base text-gray-300 hover:text-white">REVO Fluxo</Link></li>
             </ul>
           </div>
           <div>

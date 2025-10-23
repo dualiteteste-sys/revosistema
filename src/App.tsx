@@ -8,12 +8,14 @@ import LandingPage from './pages/landing/LandingPage';
 import BillingSuccessPage from './pages/billing/SuccessPage';
 import BillingCancelPage from './pages/billing/CancelPage';
 import RevoSendPage from './pages/landing/RevoSendPage';
+import RevoFluxoPage from './pages/landing/RevoFluxoPage';
 import Dashboard from './pages/Dashboard';
 import SalesDashboard from './pages/SalesDashboard';
 import ProductsPage from './pages/products/ProductsPage';
+import OnboardingMount from './components/OnboardingMount';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const { session, loading, empresas } = useAuth();
+  const { session, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -28,11 +30,12 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
   
-  if (empresas.length === 0) {
-    return <CreateCompanyPage />;
-  }
-
-  return children;
+  return (
+    <>
+      <OnboardingMount />
+      {children}
+    </>
+  );
 };
 
 const App = () => {
@@ -40,6 +43,7 @@ const App = () => {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/revo-send" element={<RevoSendPage />} />
+      <Route path="/revo-fluxo" element={<RevoFluxoPage />} />
       
       <Route path="/auth" element={<AuthLayout />}>
         <Route path="pending-verification" element={<PendingVerificationPage />} />
@@ -61,6 +65,8 @@ const App = () => {
         <Route path="billing/success" element={<BillingSuccessPage />} />
         <Route path="billing/cancel" element={<BillingCancelPage />} />
       </Route>
+      
+      <Route path="/create-company" element={<CreateCompanyPage />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

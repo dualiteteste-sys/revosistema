@@ -8,7 +8,9 @@ type Plan = Database['public']['Tables']['plans']['Row'];
 interface PricingCardProps {
   plan: Plan;
   onSubscribe: () => void;
+  onTrial: () => void;
   isSubscribing: boolean;
+  isTrialling: boolean;
   index: number;
 }
 
@@ -35,7 +37,9 @@ const planDetails: { [key: string]: { description: string, features: string[], i
 const PricingCard: React.FC<PricingCardProps> = ({
   plan,
   onSubscribe,
+  onTrial,
   isSubscribing,
+  isTrialling,
   index,
 }) => {
   const details = planDetails[plan.slug];
@@ -59,7 +63,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
       variants={cardVariants}
       initial="initial"
       animate="animate"
-      className={`relative flex flex-col rounded-3xl p-8 shadow-lg h-full ${
+      className={`relative flex flex-col rounded-3xl p-8 shadow-lg ${
         isPopular ? 'bg-gray-800 text-white border-2 border-blue-500' : 'bg-white'
       }`}
     >
@@ -72,20 +76,21 @@ const PricingCard: React.FC<PricingCardProps> = ({
       )}
       
       <h3 className="text-xl font-semibold">{plan.name}</h3>
-      <p className={`mt-2 text-sm h-10 ${isPopular ? 'text-gray-300' : 'text-gray-500'}`}>
+      <p className={`mt-2 text-sm min-h-[40px] ${isPopular ? 'text-gray-300' : 'text-gray-500'}`}>
         {details.description}
       </p>
       
-      <div className="mt-4">
-        <span className={`font-bold text-5xl ${isPopular ? 'text-white' : 'text-gray-900'}`}>
-          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.amount_cents / 100)}
+      <div className="mt-4 flex items-baseline gap-1">
+        <span className={`text-xl font-semibold ${isPopular ? 'text-gray-300' : 'text-gray-500'}`}>R$</span>
+        <span className={`font-extrabold text-4xl leading-none tracking-tight ${isPopular ? 'text-white' : 'text-gray-900'}`}>
+          {new Intl.NumberFormat('pt-BR', { style: 'decimal', minimumFractionDigits: 2 }).format(plan.amount_cents / 100)}
         </span>
-        <span className={`ml-1 ${isPopular ? 'text-gray-400' : 'text-gray-500'}`}>
+        <span className={`ml-1 text-base font-medium ${isPopular ? 'text-gray-400' : 'text-gray-500'}`}>
           /mês
         </span>
       </div>
 
-      <ul className="mt-8 space-y-4 flex-grow">
+      <ul className="mt-8 space-y-3 flex-grow">
         {details.features.map((feature, i) => (
           <li key={i} className="flex items-start">
             <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 ${isPopular ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
@@ -96,17 +101,30 @@ const PricingCard: React.FC<PricingCardProps> = ({
         ))}
       </ul>
 
-      <button
-        onClick={onSubscribe}
-        disabled={isSubscribing}
-        className={`w-full mt-10 py-3 px-6 text-base font-semibold rounded-lg transition-transform duration-200 flex items-center justify-center ${
-          isPopular
-            ? 'bg-blue-500 text-white hover:bg-blue-600'
-            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-        } disabled:opacity-70 disabled:cursor-not-allowed`}
-      >
-        {isSubscribing ? <Loader2 className="animate-spin" /> : `Assinar Plano ${plan.name}`}
-      </button>
+      <div className="mt-8 flex flex-col gap-3">
+        <button
+          onClick={onSubscribe}
+          disabled={isSubscribing || isTrialling}
+          className={`w-full py-3 px-4 text-base font-semibold rounded-lg transition-transform duration-200 flex items-center justify-center ${
+            isPopular
+              ? 'bg-blue-500 text-white hover:bg-blue-600'
+              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+          } disabled:opacity-70 disabled:cursor-not-allowed`}
+        >
+          {isSubscribing ? <Loader2 className="animate-spin" /> : `Assinar Plano ${plan.name}`}
+        </button>
+        <button
+          onClick={onTrial}
+          disabled={isTrialling || isSubscribing}
+          className={`w-full py-3 px-4 text-base font-semibold rounded-lg transition-transform duration-200 flex items-center justify-center ${
+            isPopular
+              ? 'bg-transparent border border-blue-400 text-blue-300 hover:bg-blue-500/20'
+              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+          } disabled:opacity-70 disabled:cursor-not-allowed`}
+        >
+          {isTrialling ? <Loader2 className="animate-spin" /> : 'Teste 30 dias grátis'}
+        </button>
+      </div>
     </motion.div>
   );
 };

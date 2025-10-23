@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthProvider';
 import { useToast } from '../../contexts/ToastProvider';
 import { Database } from '../../types/database.types';
+import { provisionEmpresa } from '../../features/onboarding/api';
 
 type Empresa = Database['public']['Tables']['empresas']['Row'];
 
@@ -16,7 +16,6 @@ interface CreateCompanyModalProps {
 const CreateCompanyModal: React.FC<CreateCompanyModalProps> = ({ onClose, onCompanyCreated }) => {
   const [razaoSocial, setRazaoSocial] = useState('');
   const [fantasia, setFantasia] = useState('');
-  const [cnpj, setCnpj] = useState('');
   const [loading, setLoading] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
   const { refreshEmpresas, setActiveEmpresa } = useAuth();
@@ -40,11 +39,6 @@ const CreateCompanyModal: React.FC<CreateCompanyModalProps> = ({ onClose, onComp
       setClientError('A Razão Social é obrigatória e deve ter no mínimo 3 caracteres.');
       return false;
     }
-    const normalizedCnpj = cnpj.replace(/\D/g, '');
-    if (cnpj && normalizedCnpj.length !== 14) {
-      setClientError('O CNPJ, se informado, deve conter exatamente 14 dígitos.');
-      return false;
-    }
     setClientError(null);
     return true;
   };
@@ -56,48 +50,18 @@ const CreateCompanyModal: React.FC<CreateCompanyModalProps> = ({ onClose, onComp
     setLoading(true);
 
     try {
-      const { data, error: rpcError } = await supabase.rpc('create_empresa_and_link_owner', {
-        p_razao_social: razaoSocial,
-        p_fantasia: fantasia,
-        p_cnpj: cnpj,
+      const newCompany = await provisionEmpresa({
+        razao_social: razaoSocial,
+        fantasia: fantasia,
       });
 
-      if (rpcError) {
-        if (rpcError.message.includes('unique_violation') && rpcError.message.includes('cnpj')) {
-            throw new Error('Já existe uma empresa com este CNPJ.');
-        }
-        throw rpcError;
-      }
-      
-      const empresaCriada = Array.isArray(data) ? data[0] : null;
+      await refreshEmpresas();
+      setActiveEmpresa(newCompany);
+      addToast('Empresa criada com sucesso!', 'success');
+      onCompanyCreated(newCompany);
 
-      if (empresaCriada && empresaCriada.empresa_id) {
-        await refreshEmpresas();
-        
-        const { data: newEmpresaList, error: fetchError } = await supabase
-            .from('empresas')
-            .select('*')
-            .eq('id', empresaCriada.empresa_id);
-
-        if (fetchError || !newEmpresaList || newEmpresaList.length === 0) {
-            throw new Error('Não foi possível selecionar a empresa recém-criada.');
-        }
-
-        const newCompany = newEmpresaList[0];
-        setActiveEmpresa(newCompany);
-        addToast('Empresa criada com sucesso!', 'success');
-        onCompanyCreated(newCompany);
-      } else {
-        throw new Error('Ocorreu um erro inesperado. A resposta do servidor estava vazia.');
-      }
     } catch (error: any) {
-      if (error.message.includes('not_signed_in')) {
-        addToast('Sua sessão expirou. Por favor, faça login novamente.', 'error');
-      } else if (error.message.includes('invalid_cnpj_format')) {
-        addToast('O formato do CNPJ é inválido. Por favor, verifique e envie 14 dígitos.', 'error');
-      } else {
-        addToast(error.message || 'Erro ao criar empresa.', 'error');
-      }
+      addToast(error.message || 'Erro ao criar empresa.', 'error');
     } finally {
       setLoading(false);
     }
@@ -152,17 +116,6 @@ const CreateCompanyModal: React.FC<CreateCompanyModalProps> = ({ onClose, onComp
                   onChange={(e) => setFantasia(e.target.value)}
                   className="w-full mt-1 p-3 bg-white/50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition"
                   placeholder="Nome Popular da Empresa"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700" htmlFor="cnpj">CNPJ (Opcional)</label>
-                <input
-                  id="cnpj"
-                  type="text"
-                  value={cnpj}
-                  onChange={(e) => setCnpj(e.target.value)}
-                  className="w-full mt-1 p-3 bg-white/50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition"
-                  placeholder="00.000.000/0001-00"
                 />
               </div>
               <button
