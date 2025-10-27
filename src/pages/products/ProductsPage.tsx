@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { useProducts, Product, ProductInsert, ProductUpdate } from '../../hooks/useProducts';
+import { useProducts, Product } from '../../hooks/useProducts';
 import { useToast } from '../../contexts/ToastProvider';
 import ProductsTable from '../../components/products/ProductsTable';
 import Pagination from '../../components/ui/Pagination';
-import ProductFormModal from '../../components/products/ProductFormModal';
 import DeleteProductModal from '../../components/products/DeleteProductModal';
 import { Loader2, PlusCircle, Search, Package } from 'lucide-react';
+import Modal from '../../components/ui/Modal';
+import ProductFormPanel from '../../components/products/ProductFormPanel';
+import { supabase } from '../../lib/supabase';
 
 const ProductsPage: React.FC = () => {
   const {
@@ -20,27 +22,47 @@ const ProductsPage: React.FC = () => {
     setPage,
     setSearchTerm,
     setSortBy,
-    createProduct,
-    updateProduct,
+    saveProduct,
     deleteProduct,
   } = useProducts();
   const { addToast } = useToast();
 
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
-  const handleOpenCreateModal = () => {
-    setProductToEdit(null);
-    setIsFormModalOpen(true);
+  const handleOpenForm = async (product: Product | null = null) => {
+    if (product) {
+      setIsFetchingDetails(true);
+      setIsFormOpen(true);
+      setSelectedProduct(null);
+
+      const { data: fullProduct, error } = await supabase
+        .from('produtos')
+        .select('*')
+        .eq('id', product.id)
+        .single();
+
+      setIsFetchingDetails(false);
+
+      if (error || !fullProduct) {
+        addToast('Não é possível editar este produto legado. Por favor, crie um novo.', 'info');
+        setIsFormOpen(false);
+      } else {
+        setSelectedProduct(fullProduct);
+      }
+    } else {
+      setSelectedProduct(null);
+      setIsFormOpen(true);
+    }
   };
 
-  const handleOpenEditModal = (product: Product) => {
-    setProductToEdit(product);
-    setIsFormModalOpen(true);
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setSelectedProduct(null);
   };
 
   const handleOpenDeleteModal = (product: Product) => {
@@ -48,30 +70,9 @@ const ProductsPage: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
 
-  const handleCloseModals = () => {
-    setIsFormModalOpen(false);
+  const handleCloseDeleteModal = () => {
     setIsDeleteModalOpen(false);
-    setProductToEdit(null);
     setProductToDelete(null);
-  };
-
-  const handleSave = async (data: ProductInsert | ProductUpdate) => {
-    setIsSaving(true);
-    try {
-      if (productToEdit) {
-        await updateProduct(productToEdit.id, data as ProductUpdate);
-        addToast('Produto atualizado com sucesso!', 'success');
-      } else {
-        await createProduct(data as ProductInsert);
-        addToast('Produto criado com sucesso!', 'success');
-      }
-      handleCloseModals();
-    } catch (e: any) {
-      addToast(e.message || 'Erro ao salvar produto.', 'error');
-      throw e;
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const handleDelete = async () => {
@@ -80,7 +81,7 @@ const ProductsPage: React.FC = () => {
     try {
       await deleteProduct(productToDelete.id);
       addToast('Produto excluído com sucesso!', 'success');
-      handleCloseModals();
+      handleCloseDeleteModal();
     } catch (e: any) {
       addToast(e.message || 'Erro ao excluir produto.', 'error');
     } finally {
@@ -100,7 +101,7 @@ const ProductsPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Produtos</h1>
         <button
-          onClick={handleOpenCreateModal}
+          onClick={() => handleOpenForm()}
           className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
         >
           <PlusCircle size={20} />
@@ -135,7 +136,7 @@ const ProductsPage: React.FC = () => {
             {searchTerm && <p className="text-sm">Tente ajustar sua busca.</p>}
           </div>
         ) : (
-          <ProductsTable products={products} onEdit={handleOpenEditModal} onDelete={handleOpenDeleteModal} sortBy={sortBy} onSort={handleSort} />
+          <ProductsTable products={products} onEdit={(p) => handleOpenForm(p)} onDelete={handleOpenDeleteModal} sortBy={sortBy} onSort={handleSort} />
         )}
       </div>
 
@@ -148,19 +149,29 @@ const ProductsPage: React.FC = () => {
         />
       )}
 
-      <ProductFormModal
-        isOpen={isFormModalOpen}
-        onClose={handleCloseModals}
-        onSave={handleSave}
-        product={productToEdit}
-        isSaving={isSaving}
-      />
+      <Modal
+        isOpen={isFormOpen}
+        onClose={handleCloseForm}
+        title={selectedProduct ? 'Editar Produto' : 'Novo Produto'}
+      >
+        {isFetchingDetails ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="animate-spin text-blue-600" size={48} />
+          </div>
+        ) : (
+          <ProductFormPanel 
+              product={selectedProduct}
+              onSave={saveProduct}
+              onClose={handleCloseForm}
+          />
+        )}
+      </Modal>
 
       <DeleteProductModal
         isOpen={isDeleteModalOpen}
-        onClose={handleCloseModals}
+        onClose={handleCloseDeleteModal}
         onConfirm={handleDelete}
-        product={productToDelete}
+        product={productToDelete as any}
         isDeleting={isDeleting}
       />
     </div>

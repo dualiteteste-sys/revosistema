@@ -1,6 +1,5 @@
 import React from 'react';
 import { Product } from '../../hooks/useProducts';
-import { formatCurrency } from '../../lib/utils';
 import { Edit, Trash2, ArrowUpDown } from 'lucide-react';
 
 interface ProductsTableProps {
@@ -38,9 +37,9 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ products, onEdit, onDelet
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <SortableHeader column="name" label="Nome" sortBy={sortBy} onSort={onSort} />
+            <SortableHeader column="nome" label="Nome" sortBy={sortBy} onSort={onSort} />
             <SortableHeader column="sku" label="SKU" sortBy={sortBy} onSort={onSort} />
-            <SortableHeader column="price_cents" label="Preço" sortBy={sortBy} onSort={onSort} />
+            <SortableHeader column="preco_venda" label="Preço" sortBy={sortBy} onSort={onSort} />
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidade</th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
             <th scope="col" className="relative px-6 py-3">
@@ -51,17 +50,19 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ products, onEdit, onDelet
         <tbody className="bg-white divide-y divide-gray-200">
           {products.map((product) => (
             <tr key={product.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.name}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.nome}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.sku}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatCurrency(product.price_cents)}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.unit}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.preco_venda ?? 0)}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.unidade}</td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <span
                   className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    product.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    product.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}
                 >
-                  {product.active ? 'Ativo' : 'Inativo'}
+                  {product.status === 'ativo' ? 'Ativo' : 'Inativo'}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

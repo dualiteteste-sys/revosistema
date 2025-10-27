@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthProvider';
 import MainLayout from './components/layout/MainLayout';
-import AuthLayout from './pages/auth/AuthLayout';
 import PendingVerificationPage from './pages/auth/PendingVerificationPage';
 import OnboardingPage from './pages/onboarding/OnboardingPage';
 import LandingPage from './pages/landing/LandingPage';
@@ -12,7 +11,6 @@ import RevoFluxoPage from './pages/landing/RevoFluxoPage';
 import Dashboard from './pages/Dashboard';
 import SalesDashboard from './pages/SalesDashboard';
 import ProductsPage from './pages/products/ProductsPage';
-import ConfirmationPage from './pages/auth/ConfirmationPage';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { session, loading, empresas } = useAuth();
@@ -30,7 +28,6 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
   
-  // Se o usuário está logado mas não tem empresas, força o onboarding
   if (empresas.length === 0) {
     if (location.pathname !== '/onboarding/create-company') {
       return <Navigate to="/onboarding/create-company" replace />;
@@ -48,8 +45,7 @@ const App = () => {
       <Route path="/revo-fluxo" element={<RevoFluxoPage />} />
       
       <Route path="/auth/pending-verification" element={<PendingVerificationPage />} />
-      <Route path="/auth/confirmed" element={<ConfirmationPage />} />
-
+      
       <Route 
         path="/app"
         element={
@@ -67,7 +63,6 @@ const App = () => {
         <Route path="billing/cancel" element={<BillingCancelPage />} />
       </Route>
       
-      {/* Rota dedicada para o onboarding, protegida para garantir que só usuários logados sem empresa cheguem aqui */}
       <Route 
         path="/onboarding/create-company" 
         element={

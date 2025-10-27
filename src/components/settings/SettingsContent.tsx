@@ -2,6 +2,7 @@ import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import CompanySettingsForm from './company/CompanySettingsForm';
 import SubscriptionPage from '../../pages/billing/SubscriptionPage';
+import DataManagementContent from './data-management/DataManagementContent';
 
 interface SettingsContentProps {
   activeItem: string;
@@ -14,6 +15,8 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ activeItem }) => {
         return <CompanySettingsForm />;
       case 'Minha Assinatura':
         return <SubscriptionPage />;
+      case 'Limpeza de Dados':
+        return <DataManagementContent />;
       default:
         return (
           <div>

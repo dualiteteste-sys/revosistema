@@ -1,4 +1,4 @@
-import { Building, Users, UserCog, CreditCard } from 'lucide-react';
+import { Building, Users, UserCog, CreditCard, Trash2 } from 'lucide-react';
 
 export interface SettingsTab {
   name: string;
@@ -18,6 +18,12 @@ export const settingsMenuConfig: SettingsTab[] = [
       { name: 'Usuários', icon: Users },
       { name: 'Perfil de Usuário', icon: UserCog },
       { name: 'Minha Assinatura', icon: CreditCard },
+    ],
+  },
+  {
+    name: 'Avançado',
+    menu: [
+      { name: 'Limpeza de Dados', icon: Trash2 },
     ],
   },
   {

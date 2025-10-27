@@ -3,10 +3,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthProvider';
 import { Database } from '../types/database.types';
 import { useDebounce } from './useDebounce';
+import { ProductFormData } from '../components/products/ProductFormPanel';
 
-export type Product = Database['public']['Tables']['products']['Row'];
-export type ProductInsert = Database['public']['Tables']['products']['Insert'];
-export type ProductUpdate = Database['public']['Tables']['products']['Update'];
+export type Product = Database['public']['Views']['produtos_compat_view']['Row'];
 
 export const useProducts = () => {
   const { activeEmpresa } = useAuth();
@@ -22,7 +21,7 @@ export const useProducts = () => {
   const [pageSize] = useState(10);
 
   const [sortBy, setSortBy] = useState<{ column: keyof Product; ascending: boolean }>({
-    column: 'name',
+    column: 'nome',
     ascending: true,
   });
 
@@ -39,16 +38,16 @@ export const useProducts = () => {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
+    // Usando a VIEW para buscar os produtos unificados
     let query = supabase
-      .from('products')
+      .from('produtos_compat_view')
       .select('*', { count: 'exact' })
-      .eq('empresa_id', activeEmpresa.id)
+      .eq('empresa_id', activeEmpresa.id) // Filtro explícito por empresa
       .range(from, to)
       .order(sortBy.column as string, { ascending: sortBy.ascending });
 
     if (debouncedSearchTerm) {
-      // busca por nome/sku (case-insensitive)
-      query = query.or(`name.ilike.%${debouncedSearchTerm}%,sku.ilike.%${debouncedSearchTerm}%`);
+      query = query.or(`nome.ilike.%${debouncedSearchTerm}%,sku.ilike.%${debouncedSearchTerm}%`);
     }
 
     const { data, error: fetchError, count: fetchCount } = await query;
@@ -69,100 +68,49 @@ export const useProducts = () => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // ---- CREATE (via RPC autenticada) ----
-  const createProduct = useCallback(
-    async (productData: Omit<ProductInsert, 'empresa_id' | 'id' | 'created_at' | 'updated_at'>) => {
-      setLoading(true);
-      setError(null);
+  const saveProduct = useCallback(async (formData: ProductFormData) => {
+    if (!activeEmpresa) {
+      throw new Error('Nenhuma empresa ativa selecionada.');
+    }
 
-      try {
-        // 1) Sessão + usuário (logs de diagnóstico)
-        const [{ data: sessionRes }, { data: userRes }] = await Promise.all([
-          supabase.auth.getSession(),
-          supabase.auth.getUser(),
-        ]);
-
-        const hasJWT = !!sessionRes?.session?.access_token;
-        const userId = userRes?.user?.id ?? null;
-
-        console.log('[AUTH] hasJWT:', hasJWT, 'userId:', userId, 'activeEmpresaId:', activeEmpresa?.id);
-        console.log('[FORM] payload:', productData);
-
-        if (!hasJWT) {
-          throw new Error('NO_SESSION: usuário não autenticado.');
-        }
-
-        // 2) Chamada RPC: injeta/valida empresa_id conforme o vínculo do usuário
-        const { data, error: rpcError } = await supabase
-          .rpc('create_product_for_current_user', {
-            p_name: productData.name,
-            p_sku: productData.sku,
-            p_price_cents: productData.price_cents,
-            p_unit: productData.unit,
-            p_active: productData.active,
-            // Como o usuário pode ter múltiplas empresas, passamos explicitamente a ativa
-            p_empresa_id: activeEmpresa?.id ?? null,
-          })
-          .single();
-
-        if (rpcError) {
-          console.log('[RPC] create_product_for_current_user error', rpcError);
-          if (rpcError.message?.includes('products_empresa_id_sku_key')) {
-            throw new Error('Já existe um produto com este SKU para esta empresa.');
-          }
-          if (rpcError.message?.includes('42501')) {
-            throw new Error('Permissão negada. O usuário não pertence à empresa selecionada.');
-          }
-          if (rpcError.message?.includes('Not authenticated')) {
-            throw new Error('Sessão inválida. Faça login novamente.');
-          }
-          throw rpcError;
-        }
-
-        await fetchProducts();
-        return data;
-      } catch (err) {
-        console.error('[CREATE_PRODUCT] failure:', err);
-        setError(err instanceof Error ? err.message : String(err));
-        throw err;
-      } finally {
-        setLoading(false);
+    const cleanedData = Object.entries(formData).reduce((acc, [key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        (acc as any)[key] = value;
       }
-    },
-    [activeEmpresa, fetchProducts]
-  );
+      return acc;
+    }, {} as ProductFormData);
 
-  // ---- UPDATE ----
-  const updateProduct = useCallback(
-    async (id: string, productData: ProductUpdate) => {
-      if (!activeEmpresa) throw new Error('Nenhuma empresa ativa selecionada.');
+    if (formData.id) {
+      // Update
+      const { id, created_at, updated_at, empresa_id, ...updatePayload } = cleanedData;
+      const { error } = await supabase.rpc('update_product_for_current_user', {
+        p_id: formData.id,
+        patch: updatePayload,
+      });
+      
+      if (error) throw error;
 
-      const { data, error: updateError } = await supabase
-        .from('products')
-        .update(productData)
-        .eq('id', id)
-        .eq('empresa_id', activeEmpresa.id)
-        .select()
-        .single();
+    } else {
+      // Create
+      const { id, created_at, updated_at, ...createPayload } = cleanedData;
+      const { error } = await supabase.rpc('create_product_for_current_user', {
+        payload: createPayload,
+      });
 
-      if (updateError) throw updateError;
+      if (error) throw error;
+    }
+    // Força a atualização da lista após salvar
+    await fetchProducts();
+  }, [activeEmpresa, fetchProducts]);
 
-      await fetchProducts();
-      return data;
-    },
-    [activeEmpresa, fetchProducts]
-  );
-
-  // ---- DELETE ----
   const deleteProduct = useCallback(
     async (id: string) => {
       if (!activeEmpresa) throw new Error('Nenhuma empresa ativa selecionada.');
 
       const { error: deleteError } = await supabase
-        .from('products')
+        .from('produtos')
         .delete()
-        .eq('id', id)
-        .eq('empresa_id', activeEmpresa.id);
+        .eq('id', id);
 
       if (deleteError) throw deleteError;
 
@@ -183,8 +131,7 @@ export const useProducts = () => {
     setPage,
     setSearchTerm,
     setSortBy,
-    createProduct,
-    updateProduct,
+    saveProduct,
     deleteProduct,
   };
 };
