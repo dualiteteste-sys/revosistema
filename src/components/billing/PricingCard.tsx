@@ -7,10 +7,8 @@ type Plan = Database['public']['Tables']['plans']['Row'];
 
 interface PricingCardProps {
   plan: Plan;
-  onSubscribe: () => void;
-  onTrial: () => void;
-  isSubscribing: boolean;
-  isTrialling: boolean;
+  onStartTrial: () => void;
+  isLoading: boolean;
   index: number;
 }
 
@@ -36,10 +34,8 @@ const planDetails: { [key: string]: { description: string, features: string[], i
 
 const PricingCard: React.FC<PricingCardProps> = ({
   plan,
-  onSubscribe,
-  onTrial,
-  isSubscribing,
-  isTrialling,
+  onStartTrial,
+  isLoading,
   index,
 }) => {
   const details = planDetails[plan.slug];
@@ -101,28 +97,17 @@ const PricingCard: React.FC<PricingCardProps> = ({
         ))}
       </ul>
 
-      <div className="mt-8 flex flex-col gap-3">
+      <div className="mt-8">
         <button
-          onClick={onSubscribe}
-          disabled={isSubscribing || isTrialling}
+          onClick={onStartTrial}
+          disabled={isLoading}
           className={`w-full py-3 px-4 text-base font-semibold rounded-lg transition-transform duration-200 flex items-center justify-center ${
             isPopular
               ? 'bg-blue-500 text-white hover:bg-blue-600'
               : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
           } disabled:opacity-70 disabled:cursor-not-allowed`}
         >
-          {isSubscribing ? <Loader2 className="animate-spin" /> : `Assinar Plano ${plan.name}`}
-        </button>
-        <button
-          onClick={onTrial}
-          disabled={isTrialling || isSubscribing}
-          className={`w-full py-3 px-4 text-base font-semibold rounded-lg transition-transform duration-200 flex items-center justify-center ${
-            isPopular
-              ? 'bg-transparent border border-blue-400 text-blue-300 hover:bg-blue-500/20'
-              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
-          } disabled:opacity-70 disabled:cursor-not-allowed`}
-        >
-          {isTrialling ? <Loader2 className="animate-spin" /> : 'Teste 30 dias grátis'}
+          {isLoading ? <Loader2 className="animate-spin" /> : 'Teste 30 dias grátis'}
         </button>
       </div>
     </motion.div>

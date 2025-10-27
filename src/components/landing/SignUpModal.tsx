@@ -33,11 +33,14 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ onClose, onLoginClick, intent
     setLoading(true);
     setError(null);
 
+    // Garante que o redirecionamento aponte SEMPRE para o site de produção e para a página de confirmação.
+    const redirectTo = `${import.meta.env.VITE_SITE_URL}/auth/confirmed`;
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/app`,
+        emailRedirectTo: redirectTo,
         // Armazena a intenção do usuário nos metadados para recuperar após o login
         data: {
           onboardingIntent: intent
@@ -49,6 +52,7 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ onClose, onLoginClick, intent
       setError(error.message);
       setLoading(false);
     } else {
+      onClose();
       navigate('/auth/pending-verification');
     }
   };

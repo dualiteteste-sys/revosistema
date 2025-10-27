@@ -1,0 +1,2 @@
+/auth/*    /?action=login    302!
+/*         /index.html       200

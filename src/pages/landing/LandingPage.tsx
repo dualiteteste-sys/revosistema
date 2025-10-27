@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Header from '../../components/landing/Header';
 import Hero from '../../components/landing/Hero';
 import Pricing from '../../components/landing/Pricing';
@@ -14,6 +15,9 @@ const LandingPage: React.FC = () => {
   const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [onboardingIntent, setOnboardingIntent] = useState<OnboardingIntent | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const openLoginModal = () => {
     setIsSignUpModalOpen(false);
@@ -31,6 +35,22 @@ const LandingPage: React.FC = () => {
     setIsSignUpModalOpen(false);
     setOnboardingIntent(null);
   };
+
+  useEffect(() => {
+    // Gatilho para abrir o modal via estado de navegação (ex: vindo da página de confirmação)
+    if (location.state?.openLogin) {
+      openLoginModal();
+      // Limpa o estado para evitar que o modal reabra
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+
+    // Gatilho para abrir o modal via parâmetro de URL (ex: erprevo.com/?action=login)
+    if (searchParams.get('action') === 'login') {
+      openLoginModal();
+      // Limpa o parâmetro da URL após abrir o modal
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, searchParams, navigate]);
 
   return (
     <div className="bg-white">

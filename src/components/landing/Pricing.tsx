@@ -18,7 +18,7 @@ const Pricing: React.FC<PricingProps> = ({ onSignUpClick }) => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
-  const [checkoutLoading, setCheckoutLoading] = useState<{ planId: string | null, type: 'subscribe' | 'trial' | null }>({ planId: null, type: null });
+  const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
   const { session } = useAuth();
   const { addToast } = useToast();
 
@@ -42,10 +42,8 @@ const Pricing: React.FC<PricingProps> = ({ onSignUpClick }) => {
     fetchPlans();
   }, [addToast]);
 
-  const handleAction = (plan: Plan, type: 'trial' | 'subscribe') => {
+  const handleStartTrial = (plan: Plan) => {
     if (session) {
-      // Se o usuário já está logado, deve ser redirecionado para o app para
-      // gerenciar a assinatura, pois o fluxo da landing é para novos usuários.
       addToast("Você já está logado. Gerencie sua assinatura no painel.", "info");
       window.location.href = '/app';
       return;
@@ -54,7 +52,7 @@ const Pricing: React.FC<PricingProps> = ({ onSignUpClick }) => {
     const intent: OnboardingIntent = {
       planSlug: plan.slug,
       billingCycle: plan.billing_cycle,
-      type: type
+      type: 'trial'
     };
     
     addToast("Para continuar, por favor, crie sua conta.", "info");
@@ -118,10 +116,8 @@ const Pricing: React.FC<PricingProps> = ({ onSignUpClick }) => {
                 <PricingCard
                   key={plan.id}
                   plan={plan}
-                  onSubscribe={() => handleAction(plan, 'subscribe')}
-                  onTrial={() => handleAction(plan, 'trial')}
-                  isSubscribing={checkoutLoading.planId === plan.id && checkoutLoading.type === 'subscribe'}
-                  isTrialling={checkoutLoading.planId === plan.id && checkoutLoading.type === 'trial'}
+                  onStartTrial={() => handleStartTrial(plan)}
+                  isLoading={loadingPlanId === plan.id}
                   index={index}
                 />
               ))}

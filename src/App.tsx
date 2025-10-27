@@ -12,6 +12,7 @@ import RevoFluxoPage from './pages/landing/RevoFluxoPage';
 import Dashboard from './pages/Dashboard';
 import SalesDashboard from './pages/SalesDashboard';
 import ProductsPage from './pages/products/ProductsPage';
+import ConfirmationPage from './pages/auth/ConfirmationPage';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { session, loading, empresas } = useAuth();
@@ -46,9 +47,8 @@ const App = () => {
       <Route path="/revo-send" element={<RevoSendPage />} />
       <Route path="/revo-fluxo" element={<RevoFluxoPage />} />
       
-      <Route path="/auth" element={<AuthLayout />}>
-        <Route path="pending-verification" element={<PendingVerificationPage />} />
-      </Route>
+      <Route path="/auth/pending-verification" element={<PendingVerificationPage />} />
+      <Route path="/auth/confirmed" element={<ConfirmationPage />} />
 
       <Route 
         path="/app"

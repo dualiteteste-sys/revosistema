@@ -1,8 +1,28 @@
+# Netlify config para SPA + fluxos de auth do Supabase
+
 [build]
-  command = "yarn build"
+  command = "npm run build"
   publish = "dist"
 
+# 1) Redireciona explicitamente qualquer /auth/* para a tela de login
+#    Não precisamos do fragmento (#access_token) no cliente, pois a confirmação já foi processada pelo Supabase.
+#    Use 302 para permitir mudanças futuras sem cache agressivo.
+[[redirects]]
+  from = "/auth/*"
+  to = "/?action=login"
+  status = 302
+  force = true
+
+# 2) Regra SPA catch-all: qualquer rota que não exista retorna o index.html (React/Vite)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# (Opcional) headers básicos
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
