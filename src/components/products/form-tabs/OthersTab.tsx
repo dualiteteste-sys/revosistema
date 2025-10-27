@@ -1,17 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ProductFormData } from '../ProductFormPanel';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../contexts/AuthProvider';
-import { Database } from '../../../types/database.types';
 
 // UI Components
 import Section from '../../ui/forms/Section';
 import Input from '../../ui/forms/Input';
-import Select from '../../ui/forms/Select';
 import Toggle from '../../ui/forms/Toggle';
 import TextArea from '../../ui/forms/TextArea';
-
-type LinhaProduto = Database['public']['Tables']['linhas_produto']['Row'];
 
 interface OthersTabProps {
   data: ProductFormData;
@@ -19,26 +13,6 @@ interface OthersTabProps {
 }
 
 const OthersTab: React.FC<OthersTabProps> = ({ data, onChange }) => {
-  const { activeEmpresa } = useAuth();
-  const [linhasProduto, setLinhasProduto] = useState<LinhaProduto[]>([]);
-
-  useEffect(() => {
-    const fetchLinhasProduto = async () => {
-      if (!activeEmpresa) return;
-      const { data, error } = await supabase
-        .from('linhas_produto')
-        .select('*')
-        .eq('empresa_id', activeEmpresa.id);
-      
-      if (error) {
-        console.error("Erro ao buscar linhas de produto", error);
-      } else {
-        setLinhasProduto(data);
-      }
-    };
-    fetchLinhasProduto();
-  }, [activeEmpresa]);
-
   return (
     <div>
       <Section
@@ -60,17 +34,6 @@ const OthersTab: React.FC<OthersTabProps> = ({ data, onChange }) => {
           onChange={(e) => onChange('markup', parseFloat(e.target.value) || null)}
           placeholder="Ex: 0.5 para 50%"
         />
-        <Select
-          label="Linha de Produto"
-          name="linha_produto_id"
-          value={data.linha_produto_id || ''}
-          onChange={(e) => onChange('linha_produto_id', e.target.value || null)}
-        >
-          <option value="">Nenhuma</option>
-          {linhasProduto.map(linha => (
-            <option key={linha.id} value={linha.id}>{linha.nome}</option>
-          ))}
-        </Select>
         <Input
           label="Garantia (meses)"
           name="garantia_meses"

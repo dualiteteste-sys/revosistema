@@ -196,7 +196,17 @@ const DadosGeraisTab: React.FC<DadosGeraisTabProps> = ({ data, onChange }) => {
                 </Select>
                 <PackagingIllustration type={tipoEmbalagem} />
             </div>
-            <div className="md:col-span-2 grid grid-cols-2 gap-6">
+            <div className="md:col-span-2 grid grid-cols-3 gap-4">
+                <Select
+                    label="Embalagem"
+                    name="embalagem"
+                    value={data.embalagem || 'custom'}
+                    onChange={(e) => onChange('embalagem', e.target.value)}
+                    className="col-span-3"
+                >
+                    <option value="custom">Embalagem Customizada</option>
+                </Select>
+
                 <Input
                     label="Peso líquido"
                     name="peso_liquido_kg"
@@ -217,6 +227,15 @@ const DadosGeraisTab: React.FC<DadosGeraisTabProps> = ({ data, onChange }) => {
                     endAdornment="kg"
                     placeholder="0,000"
                 />
+                <Input
+                    label="Nº de volumes"
+                    name="num_volumes"
+                    type="number"
+                    value={data.num_volumes || '1'}
+                    onChange={(e) => onChange('num_volumes', parseInt(e.target.value, 10) || 1)}
+                    placeholder="1"
+                />
+
                 { (tipoEmbalagem === 'pacote_caixa' || tipoEmbalagem === 'envelope') && (
                     <Input
                         label="Largura"
@@ -265,14 +284,6 @@ const DadosGeraisTab: React.FC<DadosGeraisTabProps> = ({ data, onChange }) => {
                         placeholder="0,0"
                     />
                 )}
-                <Input
-                    label="Volumes"
-                    name="num_volumes"
-                    type="number"
-                    value={data.num_volumes || '1'}
-                    onChange={(e) => onChange('num_volumes', parseInt(e.target.value, 10) || 1)}
-                    placeholder="1"
-                />
             </div>
         </div>
       </Section>

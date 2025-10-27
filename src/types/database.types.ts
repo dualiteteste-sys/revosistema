@@ -243,29 +243,6 @@ export interface Database {
           updated_at?: string
         }
       }
-      linhas_produto: {
-        Row: {
-          id: string
-          empresa_id: string
-          nome: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          empresa_id: string
-          nome: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          empresa_id?: string
-          nome?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
       marcas: {
         Row: {
           id: string
@@ -539,7 +516,6 @@ export interface Database {
           updated_at: string
           itens_por_caixa: number | null
           preco_custo: number | null
-          linha_produto_id: string | null
           garantia_meses: number | null
           markup: number | null
           permitir_inclusao_vendas: boolean | null
@@ -595,7 +571,6 @@ export interface Database {
           updated_at?: string
           itens_por_caixa?: number | null
           preco_custo?: number | null
-          linha_produto_id?: string | null
           garantia_meses?: number | null
           markup?: number | null
           permitir_inclusao_vendas?: boolean | null
@@ -651,7 +626,6 @@ export interface Database {
           updated_at?: string
           itens_por_caixa?: number | null
           preco_custo?: number | null
-          linha_produto_id?: string | null
           garantia_meses?: number | null
           markup?: number | null
           permitir_inclusao_vendas?: boolean | null
