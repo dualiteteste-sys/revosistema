@@ -1,8 +1,17 @@
 import supabase from '@/lib/supabaseClient';
 import { Database } from '@/types/database.types';
 
-// Type for the product list, based on the compatibility view
-export type Product = Database['public']['Views']['produtos_compat_view']['Row'];
+// Type for the product list, now derived from the RPC's return type.
+export type Product = {
+  id: string;
+  nome: string | null;
+  sku: string | null;
+  status: "ativo" | "inativo" | null;
+  preco_venda: number | null;
+  unidade: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
 
 // Type for the full product data, used in forms
 export type FullProduct = Database['public']['Tables']['produtos']['Row'];
@@ -11,43 +20,55 @@ export type FullProduct = Database['public']['Tables']['produtos']['Row'];
 export type ProductPayload = Partial<FullProduct>;
 
 /**
- * Fetches a paginated, sorted, and filtered list of products from the compatibility view.
+ * Fetches a paginated, sorted, and filtered list of products using RPCs.
  */
 export async function getProducts(options: {
-  empresaId: string;
+  empresaId: string; // Still needed for context, though not passed to RPC
   page: number;
   pageSize: number;
   searchTerm: string;
   sortBy: { column: keyof Product; ascending: boolean };
 }): Promise<{ data: Product[]; count: number }> {
-  const { empresaId, page, pageSize, searchTerm, sortBy } = options;
+  const { page, pageSize, searchTerm, sortBy } = options;
 
-  let query = supabase
-    .from('produtos_compat_view')
-    .select('*', { count: 'exact' })
-    .eq('empresa_id', empresaId);
+  const offset = (page - 1) * pageSize;
+  const orderString = `${sortBy.column} ${sortBy.ascending ? 'asc' : 'desc'}`;
 
-  if (searchTerm) {
-    query = query.or(`nome.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%`);
+  // Call the count RPC
+  const { data: countData, error: countError } = await supabase.rpc(
+    'produtos_count_for_current_user',
+    {
+      p_q: searchTerm || null,
+    }
+  );
+
+  if (countError) {
+    console.error('[SERVICE] [COUNT_PRODUCTS_RPC] error:', countError);
+    throw new Error('Não foi possível contar os produtos.');
   }
 
-  if (sortBy?.column) {
-    query = query.order(sortBy.column as string, { ascending: sortBy.ascending });
+  const count = countData ?? 0;
+
+  if (count === 0) {
+    return { data: [], count: 0 };
   }
-
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-  query = query.range(from, to);
-
-  const { data, error, count } = await query;
+  
+  // Call the list RPC
+  const { data, error } = await supabase.rpc('produtos_list_for_current_user', {
+    p_limit: pageSize,
+    p_offset: offset,
+    p_q: searchTerm || null,
+    p_order: orderString,
+  });
 
   if (error) {
-    console.error('[SERVICE] [GET_PRODUCTS] error:', error);
+    console.error('[SERVICE] [LIST_PRODUCTS_RPC] error:', error);
     throw new Error('Não foi possível listar os produtos.');
   }
 
-  return { data: (data ?? []) as Product[], count: count ?? 0 };
+  return { data: (data ?? []) as Product[], count };
 }
+
 
 /**
  * Fetches the full details of a single product for editing.

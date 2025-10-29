@@ -31,8 +31,9 @@ export const menuConfig: { name: string; icon: React.ElementType; href: string; 
     href: '#',
     gradient: 'from-green-500 to-green-600',
     children: [
-      { name: 'Clientes e Fornecedores', icon: UserPlus, href: '#' },
+      { name: 'Clientes e Fornecedores', icon: Users2, href: '/app/partners' },
       { name: 'Produtos', icon: Package, href: '/app/products' },
+      { name: 'Transportadoras', icon: Truck, href: '/app/carriers' },
       { name: 'Serviços', icon: Wrench, href: '#' },
       { name: 'Vendedores', icon: UserSquare, href: '#' },
       { name: 'Embalagens', icon: Box, href: '#' },

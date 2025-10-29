@@ -66,8 +66,8 @@ const CompanySwitcher: React.FC<CompanySwitcherProps> = ({ isCollapsed, onOpenCr
               {empresas.map((empresa) => (
                 <button
                   key={empresa.id}
-                  onClick={() => {
-                    setActiveEmpresa(empresa);
+                  onClick={async () => {
+                    await setActiveEmpresa(empresa);
                     setIsOpen(false);
                   }}
                   className="w-full flex items-center justify-between p-2 rounded-md text-sm text-gray-700 hover:bg-blue-100/80 transition-colors text-left"

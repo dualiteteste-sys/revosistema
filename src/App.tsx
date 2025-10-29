@@ -10,6 +10,8 @@ import RevoFluxoPage from './pages/landing/RevoFluxoPage';
 import Dashboard from './pages/Dashboard';
 import SalesDashboard from './pages/SalesDashboard';
 import ProductsPage from './pages/products/ProductsPage';
+import PartnersPage from './pages/partners/PartnersPage';
+import CarriersPage from './pages/carriers/CarriersPage';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { session, loading } = useAuth();
@@ -51,6 +53,8 @@ const App = () => {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="sales-dashboard" element={<SalesDashboard />} />
         <Route path="products" element={<ProductsPage />} />
+        <Route path="partners" element={<PartnersPage />} />
+        <Route path="carriers" element={<CarriersPage />} />
         
         <Route path="billing/success" element={<BillingSuccessPage />} />
         <Route path="billing/cancel" element={<BillingCancelPage />} />

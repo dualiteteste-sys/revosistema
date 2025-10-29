@@ -15,7 +15,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshEmpresas: () => Promise<void>;
-  setActiveEmpresa: (empresa: Empresa | null) => void;
+  setActiveEmpresa: (empresa: Empresa | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,14 +29,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const { addToast } = useToast();
 
-  const setActiveEmpresa = useCallback((empresa: Empresa | null) => {
+  const setActiveEmpresa = useCallback(async (empresa: Empresa | null) => {
     setActiveEmpresaState(empresa);
     if (empresa) {
       localStorage.setItem('activeEmpresaId', empresa.id);
+      const { error } = await supabase.rpc('set_active_empresa_for_current_user', { p_empresa_id: empresa.id });
+      if (error) {
+        console.error("Falha ao definir empresa ativa no backend:", error);
+        addToast("Não foi possível trocar de empresa. Tente novamente.", "error");
+      }
     } else {
       localStorage.removeItem('activeEmpresaId');
+      await supabase.rpc('set_active_empresa_for_current_user', { p_empresa_id: null });
     }
-  }, []);
+  }, [addToast]);
 
   const fetchInitialData = useCallback(async (currentSession: Session | null) => {
     setLoading(true);
@@ -46,25 +52,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (error) {
           console.error('Erro ao buscar empresas:', error);
           setEmpresas([]);
-          setActiveEmpresa(null);
+          await setActiveEmpresa(null);
         } else {
           const fetchedEmpresas = data || [];
           setEmpresas(fetchedEmpresas);
 
-          const lastActiveId = localStorage.getItem('activeEmpresaId');
-          const lastActive = fetchedEmpresas.find(e => e.id === lastActiveId);
+          const { data: whoamiData, error: whoamiError } = await supabase.rpc('whoami');
+          console.log('[RPC][WHOAMI]', { data: whoamiData, error: whoamiError });
+
+          const activeId = whoamiData?.empresa_id;
+          const active = fetchedEmpresas.find(e => e.id === activeId);
           
-          if (lastActive) {
-            setActiveEmpresa(lastActive);
+          if (active) {
+            await setActiveEmpresa(active);
           } else if (fetchedEmpresas.length > 0) {
-            setActiveEmpresa(fetchedEmpresas[0]);
+            await setActiveEmpresa(fetchedEmpresas[0]);
           } else {
-            setActiveEmpresa(null);
+            await setActiveEmpresa(null);
           }
         }
       } else {
         setEmpresas([]);
-        setActiveEmpresa(null);
+        await setActiveEmpresa(null);
       }
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
@@ -81,11 +90,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Toast para confirmação de email
       if (event === 'SIGNED_IN' && session?.user.user_metadata?.onboardingIntent) {
         const lastSignIn = new Date(session.user.last_sign_in_at || 0);
         const now = new Date();
-        // Se o login for muito recente, é provável que seja o primeiro após a confirmação
         if (now.getTime() - lastSignIn.getTime() < 5000) {
             addToast('E-mail confirmado com sucesso!', 'success');
         }
@@ -100,7 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setActiveEmpresa(null);
+    await setActiveEmpresa(null);
     navigate('/');
   };
 
@@ -117,9 +124,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (activeExists) {
             const refreshedActive = fetchedEmpresas.find(e => e.id === currentActiveId);
-            if (refreshedActive) setActiveEmpresa(refreshedActive);
+            if (refreshedActive) await setActiveEmpresa(refreshedActive);
         } else if (fetchedEmpresas.length > 0) {
-            setActiveEmpresa(fetchedEmpresas[0]);
+            await setActiveEmpresa(fetchedEmpresas[0]);
         }
       }
     }

@@ -8,6 +8,8 @@ export type Json =
 export type status_produto = "ativo" | "inativo"
 export type tipo_embalagem = "pacote_caixa" | "envelope" | "rolo_cilindro" | "outro"
 export type tipo_produto = "simples" | "kit" | "variacoes" | "fabricado" | "materia_prima"
+export type pessoa_tipo = "cliente" | "fornecedor" | "ambos"
+export type status_transportadora = "ativa" | "inativa"
 export interface Database {
   public: {
     Tables: {
@@ -791,6 +793,193 @@ export interface Database {
           updated_at?: string
         }
       }
+      pessoas: {
+        Row: {
+          id: string
+          empresa_id: string
+          tipo: Database["public"]["Enums"]["pessoa_tipo"]
+          nome: string
+          doc_unico: string | null
+          email: string | null
+          telefone: string | null
+          inscr_estadual: string | null
+          isento_ie: boolean | null
+          inscr_municipal: string | null
+          observacoes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          empresa_id: string
+          tipo: Database["public"]["Enums"]["pessoa_tipo"]
+          nome: string
+          doc_unico?: string | null
+          email?: string | null
+          telefone?: string | null
+          inscr_estadual?: string | null
+          isento_ie?: boolean | null
+          inscr_municipal?: string | null
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          empresa_id?: string
+          tipo?: Database["public"]["Enums"]["pessoa_tipo"]
+          nome?: string
+          doc_unico?: string | null
+          email?: string | null
+          telefone?: string | null
+          inscr_estadual?: string | null
+          isento_ie?: boolean | null
+          inscr_municipal?: string | null
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      pessoa_enderecos: {
+        Row: {
+          id: string
+          empresa_id: string
+          pessoa_id: string
+          tipo_endereco: string | null
+          logradouro: string | null
+          numero: string | null
+          complemento: string | null
+          bairro: string | null
+          cidade: string | null
+          uf: string | null
+          cep: string | null
+          pais: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          empresa_id: string
+          pessoa_id: string
+          tipo_endereco?: string | null
+          logradouro?: string | null
+          numero?: string | null
+          complemento?: string | null
+          bairro?: string | null
+          cidade?: string | null
+          uf?: string | null
+          cep?: string | null
+          pais?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          empresa_id?: string
+          pessoa_id?: string
+          tipo_endereco?: string | null
+          logradouro?: string | null
+          numero?: string | null
+          complemento?: string | null
+          bairro?: string | null
+          cidade?: string | null
+          uf?: string | null
+          cep?: string | null
+          pais?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      pessoa_contatos: {
+        Row: {
+          id: string
+          empresa_id: string
+          pessoa_id: string
+          nome: string | null
+          email: string | null
+          telefone: string | null
+          cargo: string | null
+          observacoes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          empresa_id: string
+          pessoa_id: string
+          nome?: string | null
+          email?: string | null
+          telefone?: string | null
+          cargo?: string | null
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          empresa_id?: string
+          pessoa_id?: string
+          nome?: string | null
+          email?: string | null
+          telefone?: string | null
+          cargo?: string | null
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_active_empresa: {
+        Row: {
+          user_id: string
+          empresa_id: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          empresa_id: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          empresa_id?: string
+          updated_at?: string
+        }
+      }
+      transportadoras: {
+        Row: {
+          id: string
+          empresa_id: string
+          nome_razao_social: string
+          nome_fantasia: string | null
+          cnpj: string | null
+          inscr_estadual: string | null
+          status: Database["public"]["Enums"]["status_transportadora"]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          empresa_id: string
+          nome_razao_social: string
+          nome_fantasia?: string | null
+          cnpj?: string | null
+          inscr_estadual?: string | null
+          status?: Database["public"]["Enums"]["status_transportadora"]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          empresa_id?: string
+          nome_razao_social?: string
+          nome_fantasia?: string | null
+          cnpj?: string | null
+          inscr_estadual?: string | null
+          status?: Database["public"]["Enums"]["status_transportadora"]
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       empresa_features: {
@@ -834,7 +1023,7 @@ export interface Database {
         Args: { p_image_id: string }
         Returns: undefined
       }
-      enforce_same_empresa_produto_ou_fornecedor: {
+      enforce_same_empresa_pessoa: {
         Args: Record<string, unknown>
         Returns: unknown
       }
@@ -842,18 +1031,32 @@ export interface Database {
         Args: { p_empresa_id: string }
         Returns: boolean
       }
+      produtos_count_for_current_user: {
+        Args: {
+          p_q?: string | null
+          p_status?: Database["public"]["Enums"]["status_produto"] | null
+        }
+        Returns: number
+      }
       produtos_list_for_current_user: {
-        Args: Record<string, unknown>
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_q?: string | null
+          p_status?: Database["public"]["Enums"]["status_produto"] | null
+          p_order?: string
+        }
         Returns: {
-          id: string | null
-          empresa_id: string | null
-          nome: string | null
-          sku: string | null
-          preco_venda: number | null
-          unidade: string | null
-          status: status_produto | null
-          created_at: string | null
-          updated_at: string | null
+          id: string
+          nome: string
+          sku: string
+          status: Database["public"]["Enums"]["status_produto"]
+          preco_venda: number
+          unidade: string
+          gtin: string
+          slug: string
+          updated_at: string
+          created_at: string
         }[]
       }
       provision_empresa_for_current_user: {
@@ -906,11 +1109,94 @@ export interface Database {
         Args: { ncm_in: string; cest_in: string }
         Returns: undefined
       }
+      count_partners: {
+        Args: {
+          p_q?: string | null
+          p_tipo?: Database["public"]["Enums"]["pessoa_tipo"] | null
+        }
+        Returns: number
+      }
+      create_update_partner: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
+      delete_partner: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      get_partner_details: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      list_partners: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_q?: string | null
+          p_tipo?: Database["public"]["Enums"]["pessoa_tipo"] | null
+          p_order?: string
+        }
+        Returns: {
+          id: string
+          nome: string
+          tipo: Database["public"]["Enums"]["pessoa_tipo"]
+          doc_unico: string
+          email: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      whoami: {
+        Args: Record<string, unknown>
+        Returns: Json
+      }
+      set_active_empresa_for_current_user: {
+        Args: { p_empresa_id: string }
+        Returns: undefined
+      }
+      count_carriers: {
+        Args: {
+          p_q?: string | null
+          p_status?: Database["public"]["Enums"]["status_transportadora"] | null
+        }
+        Returns: number
+      }
+      create_update_carrier: {
+        Args: { p_payload: Json }
+        Returns: Database["public"]["Tables"]["transportadoras"]["Row"]
+      }
+      delete_carrier: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      get_carrier_details: {
+        Args: { p_id: string }
+        Returns: Database["public"]["Tables"]["transportadoras"]["Row"]
+      }
+      list_carriers: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_q?: string | null
+          p_status?: Database["public"]["Enums"]["status_transportadora"] | null
+          p_order?: string
+        }
+        Returns: {
+          id: string
+          nome_razao_social: string
+          cnpj: string
+          inscr_estadual: string
+          status: Database["public"]["Enums"]["status_transportadora"]
+          created_at: string
+        }[]
+      }
     }
     Enums: {
       status_produto: "ativo" | "inativo"
       tipo_embalagem: "pacote_caixa" | "envelope" | "rolo_cilindro" | "outro"
       tipo_produto: "simples" | "kit" | "variacoes" | "fabricado" | "materia_prima"
+      pessoa_tipo: "cliente" | "fornecedor" | "ambos"
+      status_transportadora: "ativa" | "inativa"
     }
     CompositeTypes: {
       [_ in never]: never
