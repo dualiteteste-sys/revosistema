@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Toast from '../components/ui/Toast';
 
@@ -18,9 +18,10 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const toastId = useRef(0);
 
   const addToast = useCallback((message: string, type: ToastType) => {
-    const id = Date.now();
+    const id = toastId.current++;
     setToasts((prevToasts) => [...prevToasts, { id, message, type }]);
   }, []);
 

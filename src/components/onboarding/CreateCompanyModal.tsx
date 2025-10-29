@@ -3,10 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthProvider';
 import { useToast } from '../../contexts/ToastProvider';
-import { Database } from '../../types/database.types';
-import { provisionEmpresa } from '../../features/onboarding/api';
-
-type Empresa = Database['public']['Tables']['empresas']['Row'];
+import { Empresa, provisionCompany } from '../../services/company';
 
 interface CreateCompanyModalProps {
   onClose: () => void;
@@ -50,7 +47,7 @@ const CreateCompanyModal: React.FC<CreateCompanyModalProps> = ({ onClose, onComp
     setLoading(true);
 
     try {
-      const newCompany = await provisionEmpresa({
+      const newCompany = await provisionCompany({
         razao_social: razaoSocial,
         fantasia: fantasia,
       });

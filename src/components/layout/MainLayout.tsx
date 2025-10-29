@@ -7,6 +7,7 @@ import CreateCompanyModal from '../onboarding/CreateCompanyModal';
 import { SubscriptionProvider } from '../../contexts/SubscriptionProvider';
 import SubscriptionGuard from './SubscriptionGuard';
 import { menuConfig } from '../../config/menuConfig';
+import { useAuth } from '../../contexts/AuthProvider';
 
 const findActiveItem = (pathname: string): string => {
   for (const group of menuConfig) {
@@ -25,6 +26,7 @@ const findActiveItem = (pathname: string): string => {
 };
 
 const MainLayout: React.FC = () => {
+  const { empresas, loading: authLoading } = useAuth();
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [wasSidebarExpandedBeforeSettings, setWasSidebarExpandedBeforeSettings] = useState(false);
@@ -37,6 +39,12 @@ const MainLayout: React.FC = () => {
   useEffect(() => {
     setActiveItem(findActiveItem(location.pathname));
   }, [location.pathname]);
+  
+  useEffect(() => {
+    if (!authLoading && empresas.length === 0) {
+      setIsCreateCompanyModalOpen(true);
+    }
+  }, [authLoading, empresas]);
 
   const handleOpenSettings = () => {
     setWasSidebarExpandedBeforeSettings(!isSidebarCollapsed);
@@ -52,6 +60,13 @@ const MainLayout: React.FC = () => {
   const handleCompanyCreated = () => {
     setIsCreateCompanyModalOpen(false);
     handleOpenSettings();
+  };
+  
+  const handleCloseCreateCompanyModal = () => {
+    if (empresas.length === 0) {
+      return;
+    }
+    setIsCreateCompanyModalOpen(false);
   };
 
   const handleSetActiveItem = (name: string) => {
@@ -87,7 +102,7 @@ const MainLayout: React.FC = () => {
         <AnimatePresence>
           {isCreateCompanyModalOpen && (
             <CreateCompanyModal 
-              onClose={() => setIsCreateCompanyModalOpen(false)}
+              onClose={handleCloseCreateCompanyModal}
               onCompanyCreated={handleCompanyCreated}
             />
           )}

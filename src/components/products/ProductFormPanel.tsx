@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Save } from 'lucide-react';
+import { AlertTriangle, Loader2, Save } from 'lucide-react';
 import { Database } from '../../types/database.types';
 import { useToast } from '../../contexts/ToastProvider';
 import DadosGeraisTab from './form-tabs/DadosGeraisTab';
@@ -12,13 +12,14 @@ export type ProductFormData = Partial<Database['public']['Tables']['produtos']['
 
 interface ProductFormPanelProps {
   product: ProductFormData | null;
-  onSave: (data: ProductFormData) => Promise<void>;
+  onSaveSuccess: (savedProduct: ProductFormData) => void;
   onClose: () => void;
+  saveProduct: (formData: ProductFormData) => Promise<ProductFormData>;
 }
 
 const tabs = ['Dados Gerais', 'Dados Complementares', 'Mídia', 'SEO', 'Outros'];
 
-const ProductFormPanel: React.FC<ProductFormPanelProps> = ({ product, onSave, onClose }) => {
+const ProductFormPanel: React.FC<ProductFormPanelProps> = ({ product, onSaveSuccess, onClose, saveProduct }) => {
   const { addToast } = useToast();
   const [formData, setFormData] = useState<ProductFormData>({});
   const [activeTab, setActiveTab] = useState(tabs[0]);
@@ -53,11 +54,19 @@ const ProductFormPanel: React.FC<ProductFormPanelProps> = ({ product, onSave, on
       setActiveTab('Dados Gerais');
       return;
     }
+
+    if (formData.ncm && formData.ncm.replace(/\D/g, '').length !== 8) {
+      addToast('O NCM informado é inválido. O formato deve ser 0000.00.00.', 'error');
+      setActiveTab('Dados Gerais');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      await onSave(formData);
+      const savedProduct = await saveProduct(formData);
       addToast('Produto salvo com sucesso!', 'success');
-      onClose();
+      setFormData(savedProduct);
+      onSaveSuccess(savedProduct);
     } catch (error: any) {
       console.error(error);
       addToast(error.message || 'Erro ao salvar o produto', 'error');
@@ -75,7 +84,18 @@ const ProductFormPanel: React.FC<ProductFormPanelProps> = ({ product, onSave, on
       case 'Dados Complementares':
         return <AdditionalDataTab data={formData} onChange={handleFormChange} />;
       case 'Mídia':
-        return <MediaTab />;
+        if (formData.id && formData.empresa_id) {
+          return <MediaTab produtoId={formData.id} empresaId={formData.empresa_id} />;
+        }
+        return (
+          <div className="flex flex-col items-center justify-center text-center p-8 h-full bg-gray-50 rounded-lg">
+            <AlertTriangle className="w-12 h-12 text-yellow-500 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-800">Salve o produto primeiro</h3>
+            <p className="text-gray-600 mt-2">
+              Você precisa salvar o produto na aba "Dados Gerais" antes de poder adicionar imagens.
+            </p>
+          </div>
+        );
       case 'SEO':
         return <SeoTab data={formData} onChange={handleFormChange} />;
       default:

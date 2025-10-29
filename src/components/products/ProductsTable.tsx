@@ -1,5 +1,6 @@
 import React from 'react';
-import { Product } from '../../hooks/useProducts';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Product } from '../../services/products';
 import { Edit, Trash2, ArrowUpDown } from 'lucide-react';
 
 interface ProductsTableProps {
@@ -47,37 +48,47 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ products, onEdit, onDelet
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {products.map((product) => (
-            <tr key={product.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.nome}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.sku}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.preco_venda ?? 0)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.unidade}</td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span
-                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    product.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}
-                >
-                  {product.status === 'ativo' ? 'Ativo' : 'Inativo'}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div className="flex items-center justify-end gap-4">
-                  <button onClick={() => onEdit(product)} className="text-indigo-600 hover:text-indigo-900">
-                    <Edit size={18} />
-                  </button>
-                  <button onClick={() => onDelete(product)} className="text-red-600 hover:text-red-900">
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
+        <motion.tbody layout className="bg-white divide-y divide-gray-200">
+          <AnimatePresence>
+            {products.map((product) => (
+              <motion.tr
+                key={product.id}
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="hover:bg-gray-50"
+              >
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.nome}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.sku}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.preco_venda ?? 0)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.unidade}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      product.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {product.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div className="flex items-center justify-end gap-4">
+                    <button onClick={() => onEdit(product)} className="text-indigo-600 hover:text-indigo-900">
+                      <Edit size={18} />
+                    </button>
+                    <button onClick={() => onDelete(product)} className="text-red-600 hover:text-red-900">
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </td>
+              </motion.tr>
+            ))}
+          </AnimatePresence>
+        </motion.tbody>
       </table>
     </div>
   );

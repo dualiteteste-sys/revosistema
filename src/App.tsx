@@ -2,7 +2,6 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthProvider';
 import MainLayout from './components/layout/MainLayout';
 import PendingVerificationPage from './pages/auth/PendingVerificationPage';
-import OnboardingPage from './pages/onboarding/OnboardingPage';
 import LandingPage from './pages/landing/LandingPage';
 import BillingSuccessPage from './pages/billing/SuccessPage';
 import BillingCancelPage from './pages/billing/CancelPage';
@@ -13,7 +12,7 @@ import SalesDashboard from './pages/SalesDashboard';
 import ProductsPage from './pages/products/ProductsPage';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const { session, loading, empresas } = useAuth();
+  const { session, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -26,12 +25,6 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 
   if (!session) {
     return <Navigate to="/" state={{ from: location }} replace />;
-  }
-  
-  if (empresas.length === 0) {
-    if (location.pathname !== '/onboarding/create-company') {
-      return <Navigate to="/onboarding/create-company" replace />;
-    }
   }
   
   return children;
@@ -62,15 +55,6 @@ const App = () => {
         <Route path="billing/success" element={<BillingSuccessPage />} />
         <Route path="billing/cancel" element={<BillingCancelPage />} />
       </Route>
-      
-      <Route 
-        path="/onboarding/create-company" 
-        element={
-          <ProtectedRoute>
-            <OnboardingPage />
-          </ProtectedRoute>
-        } 
-      />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

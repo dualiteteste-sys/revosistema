@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useProducts, Product } from '../../hooks/useProducts';
+import { useProducts } from '../../hooks/useProducts';
 import { useToast } from '../../contexts/ToastProvider';
 import ProductsTable from '../../components/products/ProductsTable';
 import Pagination from '../../components/ui/Pagination';
@@ -7,7 +7,7 @@ import DeleteProductModal from '../../components/products/DeleteProductModal';
 import { Loader2, PlusCircle, Search, Package } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
 import ProductFormPanel from '../../components/products/ProductFormPanel';
-import { supabase } from '../../lib/supabase';
+import * as productsService from '../../services/products';
 
 const ProductsPage: React.FC = () => {
   const {
@@ -28,27 +28,23 @@ const ProductsPage: React.FC = () => {
   const { addToast } = useToast();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<productsService.FullProduct | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<productsService.Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
-  const handleOpenForm = async (product: Product | null = null) => {
-    if (product) {
+  const handleOpenForm = async (product: productsService.Product | null = null) => {
+    if (product && product.id) {
       setIsFetchingDetails(true);
       setIsFormOpen(true);
       setSelectedProduct(null);
 
-      const { data: fullProduct, error } = await supabase
-        .from('produtos')
-        .select('*')
-        .eq('id', product.id)
-        .single();
-
+      const fullProduct = await productsService.getProductDetails(product.id);
+      
       setIsFetchingDetails(false);
 
-      if (error || !fullProduct) {
+      if (!fullProduct) {
         addToast('Não é possível editar este produto legado. Por favor, crie um novo.', 'info');
         setIsFormOpen(false);
       } else {
@@ -65,7 +61,11 @@ const ProductsPage: React.FC = () => {
     setSelectedProduct(null);
   };
 
-  const handleOpenDeleteModal = (product: Product) => {
+  const handleSaveSuccess = () => {
+    handleCloseForm();
+  };
+
+  const handleOpenDeleteModal = (product: productsService.Product) => {
     setProductToDelete(product);
     setIsDeleteModalOpen(true);
   };
@@ -76,7 +76,7 @@ const ProductsPage: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (!productToDelete) return;
+    if (!productToDelete || !productToDelete.id) return;
     setIsDeleting(true);
     try {
       await deleteProduct(productToDelete.id);
@@ -89,7 +89,7 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  const handleSort = (column: keyof Product) => {
+  const handleSort = (column: keyof productsService.Product) => {
     setSortBy(prev => ({
       column,
       ascending: prev.column === column ? !prev.ascending : true,
@@ -161,8 +161,9 @@ const ProductsPage: React.FC = () => {
         ) : (
           <ProductFormPanel 
               product={selectedProduct}
-              onSave={saveProduct}
+              onSaveSuccess={handleSaveSuccess}
               onClose={handleCloseForm}
+              saveProduct={saveProduct}
           />
         )}
       </Modal>

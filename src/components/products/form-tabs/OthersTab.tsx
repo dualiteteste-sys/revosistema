@@ -1,11 +1,10 @@
 import React from 'react';
 import { ProductFormData } from '../ProductFormPanel';
-
-// UI Components
 import Section from '../../ui/forms/Section';
 import Input from '../../ui/forms/Input';
 import Toggle from '../../ui/forms/Toggle';
 import TextArea from '../../ui/forms/TextArea';
+import { useNumericField } from '../../../hooks/useNumericField';
 
 interface OthersTabProps {
   data: ProductFormData;
@@ -13,6 +12,11 @@ interface OthersTabProps {
 }
 
 const OthersTab: React.FC<OthersTabProps> = ({ data, onChange }) => {
+  const precoCustoProps = useNumericField(data.preco_custo, (value) => onChange('preco_custo', value));
+  const markupProps = useNumericField(data.markup, (value) => onChange('markup', value));
+  const valorIpiFixoProps = useNumericField(data.valor_ipi_fixo, (value) => onChange('valor_ipi_fixo', value));
+  const fatorConversaoProps = useNumericField(data.fator_conversao, (value) => onChange('fator_conversao', value));
+
   return (
     <div>
       <Section
@@ -22,16 +26,14 @@ const OthersTab: React.FC<OthersTabProps> = ({ data, onChange }) => {
         <Input
           label="Preço de Custo (R$)"
           name="preco_custo"
-          type="number"
-          value={data.preco_custo || ''}
-          onChange={(e) => onChange('preco_custo', parseFloat(e.target.value) || null)}
+          type="text"
+          {...precoCustoProps}
         />
         <Input
           label="Markup (%)"
           name="markup"
-          type="number"
-          value={data.markup || ''}
-          onChange={(e) => onChange('markup', parseFloat(e.target.value) || null)}
+          type="text"
+          {...markupProps}
           placeholder="Ex: 0.5 para 50%"
         />
         <Input
@@ -78,9 +80,8 @@ const OthersTab: React.FC<OthersTabProps> = ({ data, onChange }) => {
         <Input
           label="Fator de Conversão"
           name="fator_conversao"
-          type="number"
-          value={data.fator_conversao || ''}
-          onChange={(e) => onChange('fator_conversao', parseFloat(e.target.value) || null)}
+          type="text"
+          {...fatorConversaoProps}
         />
         <Input
           label="Cód. Enquadramento IPI"
@@ -91,9 +92,8 @@ const OthersTab: React.FC<OthersTabProps> = ({ data, onChange }) => {
         <Input
           label="Valor Fixo de IPI (R$)"
           name="valor_ipi_fixo"
-          type="number"
-          value={data.valor_ipi_fixo || ''}
-          onChange={(e) => onChange('valor_ipi_fixo', parseFloat(e.target.value) || null)}
+          type="text"
+          {...valorIpiFixoProps}
         />
         <Input
           label="Cód. Enq. Legal IPI"

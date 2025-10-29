@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { OnboardingIntent } from '@/types/onboarding';
+import { signUpWithEmail } from '@/lib/auth';
 
 interface SignUpModalProps {
   onClose: () => void;
@@ -33,27 +33,21 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ onClose, onLoginClick, intent
     setLoading(true);
     setError(null);
 
-    // Garante que o redirecionamento aponte SEMPRE para o site de produção e para a página de confirmação.
-    const redirectTo = `${import.meta.env.VITE_SITE_URL}/auth/confirmed`;
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectTo,
-        // Armazena a intenção do usuário nos metadados para recuperar após o login
+    try {
+      await signUpWithEmail(email, password, {
+        // A lógica de emailRedirectTo é tratada dentro de signUpWithEmail.
+        // Passamos apenas os metadados.
         data: {
-          onboardingIntent: intent
-        }
-      },
-    });
+          onboardingIntent: intent,
+        },
+      });
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
       onClose();
       navigate('/auth/pending-verification');
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 

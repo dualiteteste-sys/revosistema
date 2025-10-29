@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, AlertTriangle } from 'lucide-react';
-import { Product } from '../../hooks/useProducts';
+import { Product } from '../../services/products';
 
 interface DeleteProductModalProps {
   isOpen: boolean;
@@ -39,7 +39,7 @@ const DeleteProductModal: React.FC<DeleteProductModalProps> = ({ isOpen, onClose
                 </h3>
                 <div className="mt-2">
                   <p className="text-sm text-gray-500">
-                    Tem certeza que deseja excluir o produto "{product?.name}"? Esta ação não pode ser desfeita.
+                    Tem certeza que deseja excluir o produto "{product?.nome}"? Esta ação não pode ser desfeita.
                   </p>
                 </div>
               </div>

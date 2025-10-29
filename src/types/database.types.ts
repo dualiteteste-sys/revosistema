@@ -5,11 +5,9 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[]
-
 export type status_produto = "ativo" | "inativo"
 export type tipo_embalagem = "pacote_caixa" | "envelope" | "rolo_cilindro" | "outro"
 export type tipo_produto = "simples" | "kit" | "variacoes" | "fabricado" | "materia_prima"
-
 export interface Database {
   public: {
     Tables: {
@@ -828,6 +826,14 @@ export interface Database {
         Args: Record<string, unknown>
         Returns: string
       }
+      delete_product_for_current_user: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      delete_product_image_db: {
+        Args: { p_image_id: string }
+        Returns: undefined
+      }
       enforce_same_empresa_produto_ou_fornecedor: {
         Args: Record<string, unknown>
         Returns: unknown
@@ -880,6 +886,13 @@ export interface Database {
           empresa_id: string
           restored_count: number
         }[]
+      }
+      set_principal_product_image: {
+        Args: {
+          p_produto_id: string
+          p_imagem_id: string
+        }
+        Returns: undefined
       }
       tg_set_updated_at: {
         Args: Record<string, unknown>

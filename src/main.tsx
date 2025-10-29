@@ -1,30 +1,33 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import App from './App.tsx';
-import { AuthProvider } from './contexts/AuthProvider.tsx';
-import { ToastProvider } from './contexts/ToastProvider.tsx';
-import './index.css';
-import AuthConfirmed from './pages/auth/Confirmed.tsx';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
 
-const rootElement = document.getElementById('root')!;
-const root = createRoot(rootElement);
+// ⚠️ Importa a tela especial de confirmação de auth
+import AuthConfirmed from "@/pages/auth/Confirmed";
+
+// Se seu projeto usa Tailwind/CSS global, mantenha os imports existentes
+import "./index.css";
+import { BrowserRouter } from "react-router-dom";
+import { ToastProvider } from "./contexts/ToastProvider";
+import { AuthProvider } from "./contexts/AuthProvider";
 
 /**
  * Bootstrap condicional:
- * - Se a URL for /auth/confirmed, renderiza a página de confirmação "sozinha"
+ * - Se a URL iniciar com /auth/confirmed, montamos o AuthConfirmed "sozinho"
  *   para processar o hash do Supabase sem depender do router.
- * - Caso contrário, renderiza o App normalmente com todos os providers.
+ * - Caso contrário, renderizamos o App normalmente.
  */
-if (window.location.pathname.startsWith('/auth/confirmed')) {
-  root.render(
-    <StrictMode>
+const root = document.getElementById("root")!;
+
+if (window.location.pathname.startsWith("/auth/confirmed")) {
+  ReactDOM.createRoot(root).render(
+    <React.StrictMode>
       <AuthConfirmed />
-    </StrictMode>
+    </React.StrictMode>
   );
 } else {
-  root.render(
-    <StrictMode>
+  ReactDOM.createRoot(root).render(
+    <React.StrictMode>
       <BrowserRouter>
         <ToastProvider>
           <AuthProvider>
@@ -32,11 +35,6 @@ if (window.location.pathname.startsWith('/auth/confirmed')) {
           </AuthProvider>
         </ToastProvider>
       </BrowserRouter>
-    </StrictMode>
+    </React.StrictMode>
   );
 }
-
-(window as any).__billingDiagnostics__ = {
-  VITE_FUNCTIONS_BASE_URL: import.meta.env.VITE_FUNCTIONS_BASE_URL,
-  VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
-};

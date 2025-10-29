@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabasePublic } from '@/lib/supabasePublic';
+import supabase from '@/lib/supabaseClient';
 import { Database } from '@/types/database.types';
 import PricingCard from '@/components/billing/PricingCard';
 import { Loader2 } from 'lucide-react';
@@ -25,7 +25,7 @@ const Pricing: React.FC<PricingProps> = ({ onSignUpClick }) => {
   useEffect(() => {
     const fetchPlans = async () => {
       setLoading(true);
-      const { data, error } = await supabasePublic
+      const { data, error } = await supabase
         .from('plans')
         .select('*')
         .eq('active', true)

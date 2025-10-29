@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabaseClient";
 
 /**
  * [/auth/confirmed] Consumidor do hash do Supabase
  * - Idempotente: se já logado, só redireciona
  * - Trata ausência de tokens e erros de sessão
  * - Limpa fragmento (#...) da URL
- * - Redireciona para onboarding (ex.: /onboarding/create-company) ou fallback
+ * - Redireciona para onboarding (ex.: /empresa/criar) ou fallback
  */
 export default function AuthConfirmed() {
   const [msg, setMsg] = useState("Processando confirmação de e-mail...");
@@ -33,7 +33,8 @@ export default function AuthConfirmed() {
 
         const access_token = hashParams.get("access_token");
         const refresh_token = hashParams.get("refresh_token");
-        const type = hashParams.get("type"); // "signup" | "recovery" | etc.
+        const token_type = hashParams.get("token_type"); // geralmente "bearer"
+        const type = hashParams.get("type");            // "signup" | "recovery" | etc.
 
         if (!access_token || !refresh_token) {
           console.warn("[AUTH] tokens ausentes no fragmento; enviando para login.");
@@ -82,7 +83,7 @@ export default function AuthConfirmed() {
           || window.localStorage.getItem("planSlug");
 
         // Seu fluxo atual: primeiro login → criação de empresa
-        const defaultOnboarding = "/onboarding/create-company";
+        const defaultOnboarding = "/app";
 
         const target =
           (intended && safePath(intended)) ||
@@ -92,7 +93,7 @@ export default function AuthConfirmed() {
         console.info("[AUTH] redirecionando para:", target);
         window.location.assign(target);
       } catch {
-        window.location.assign("/onboarding/create-company");
+        window.location.assign("/app");
       }
     };
 
@@ -107,10 +108,10 @@ export default function AuthConfirmed() {
       // Permite apenas paths internos; evita open-redirect
       try {
         const u = new URL(p, window.location.origin);
-        if (u.origin !== window.location.origin) return "/onboarding/create-company";
+        if (u.origin !== window.location.origin) return "/app";
         return u.pathname + u.search + u.hash;
       } catch {
-        return "/onboarding/create-company";
+        return "/app";
       }
     };
 
@@ -119,8 +120,8 @@ export default function AuthConfirmed() {
   }, []);
 
   return (
-    <div style={{ fontFamily: 'sans-serif', maxWidth: 520, margin: "64px auto", padding: 16, color: '#333' }}>
-      <h1 style={{ marginBottom: 8, fontSize: '1.5rem', fontWeight: 'bold' }}>Confirmando sua conta…</h1>
+    <div style={{ maxWidth: 520, margin: "64px auto", padding: 16 }}>
+      <h1 style={{ marginBottom: 8 }}>Confirmando sua conta…</h1>
       <p>{msg}</p>
       {detail && (
         <pre
@@ -130,8 +131,6 @@ export default function AuthConfirmed() {
             borderRadius: 8,
             background: "rgba(0,0,0,.06)",
             overflowX: "auto",
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all'
           }}
         >
           {detail}

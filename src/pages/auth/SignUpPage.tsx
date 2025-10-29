@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import { motion } from 'framer-motion';
+import { signUpWithEmail } from '@/lib/auth';
 
 const SignUpPage = () => {
   const [email, setEmail] = useState('');
@@ -15,20 +15,14 @@ const SignUpPage = () => {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/app`,
-      },
-    });
-
-    if (error) {
-      setError(error.message);
-    } else {
+    try {
+      await signUpWithEmail(email, password);
       navigate('/auth/pending-verification');
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

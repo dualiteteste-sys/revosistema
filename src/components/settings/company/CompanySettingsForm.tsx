@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthProvider';
-import { supabase } from '../../../lib/supabase';
-import { Database } from '../../../types/database.types';
 import { UploadCloud, Search, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { useToast } from '../../../contexts/ToastProvider';
-
-type EmpresaUpdate = Database['public']['Tables']['empresas']['Update'];
+import { EmpresaUpdate } from '@/services/company';
+import { updateCompany } from '@/services/company';
 
 const CompanySettingsForm: React.FC = () => {
   const { activeEmpresa, refreshEmpresas } = useAuth();
@@ -86,16 +84,12 @@ const CompanySettingsForm: React.FC = () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { created_at, ...updateData } = formData;
 
-    const { error: updateError } = await supabase
-      .from('empresas')
-      .update(updateData)
-      .eq('id', formData.id);
-
-    if (updateError) {
-      addToast(`Erro ao atualizar empresa: ${updateError.message}`, 'error');
-    } else {
+    try {
+      await updateCompany(formData.id, updateData);
       addToast('Dados da empresa atualizados com sucesso!', 'success');
       await refreshEmpresas();
+    } catch (error: any) {
+      addToast(`Erro ao atualizar empresa: ${error.message}`, 'error');
     }
 
     setLoading(false);

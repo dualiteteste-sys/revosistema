@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../contexts/AuthProvider';
-import { supabase } from '../../../lib/supabase';
+import supabase from '@/lib/supabaseClient';
 import { useToast } from '../../../contexts/ToastProvider';
 import { Loader2, Trash2, Archive, RotateCcw, DatabaseBackup } from 'lucide-react';
 import GlassCard from '../../ui/GlassCard';
